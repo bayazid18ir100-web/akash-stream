@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07122b">
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Akash Stream</title>
 <style>
 :root{--bg:#07122b;--card:#0e1f45;--line:#1c3366;--tx:#eaf2ff;--mut:#8ea6d1;--cy:#22d3ee;--or:#ff9f43}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+body{margin:0;max-width:100vw;overflow-x:hidden;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
 .top{position:sticky;top:0;z-index:30;background:var(--bg);padding-top:env(safe-area-inset-top)}
 header{display:flex;align-items:center;gap:6px;padding:8px 12px}
 header .brand{display:flex;align-items:center;gap:8px;flex:1}
-header img{width:32px;height:32px;border-radius:8px}
-header h1{font-size:19px;margin:0}
+header img{height:36px;width:auto;max-width:100%}
+header h1{font-size:0;line-height:0;margin:0}
 header h1 span{color:var(--cy)}
 .ib{background:none;border:0;font-size:22px;padding:4px 7px;line-height:1}
 .player{background:#000;position:relative;aspect-ratio:16/9;width:100%;max-height:44vh}
@@ -63,14 +65,14 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="icon.svg" alt=""><h1>Akash <span>Stream</span></h1></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
-<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="icon.svg" alt=""><div>Akash Stream-e shagotom<br>Ekta channel select koro</div></div></div>
-<div class="now" id="now">Kichu play hocche na</div>
-<div class="sb" id="sb"><input id="q" placeholder="Channel khojo..."></div>
+<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
+<div class="now" id="now">Nothing is playing</div>
+<div class="sb" id="sb"><input id="q" name="channel-search" placeholder="Search channels..." autocomplete="off"></div>
 </div>
 
 <main>
@@ -83,23 +85,27 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div id="loginBox">
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
-<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="flex:none"> Password dekhao</label>
-<button id="loginBtn">Login</button> <span id="lerr" style="color:#ff6b6b"></span>
+<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="flex:none"> Show password</label>
+<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Login with Google</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
 <div class="bar"><input id="lnk" placeholder="m3u link (optional)"><button id="ldBtn">Load</button></div>
+<div class="bar"><input id="m3uFile" type="file" accept=".m3u,.m3u8,.txt,text/plain,*/*"></div>
 <textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;https://...png&quot; group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
 <div class="bar">
 <select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
 <select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option></select>
 </div>
 <div class="bar">
+<button id="logoBtn">Auto-fill missing logos</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
+</div>
+<div class="bar">
 <button id="imp">Import</button>
-<button id="clr">Sob channel muchbe</button>
+<button id="clr">Delete all channels</button>
 <button id="out">Logout</button>
 </div>
-<p style="color:var(--mut);font-size:12px;margin:6px 0 0">Playlist-e tvg-logo thakle logo automatic ashbe. Kono channel-er logo/category/country bodlate channel-er niche Edit chapo.</p>
+<p style="color:var(--mut);font-size:12px;margin:6px 0 0">If the playlist has tvg-logo, logos are added automatically. To change a channel's logo, category or country, tap Edit under the channel.</p>
 </div>
 </div>
 <button class="fab" id="fab" aria-label="Admin panel">+</button>
@@ -108,10 +114,10 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig={
-  apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-30Y8",
+  apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-3OY8",
   authDomain:"akash-stream.firebaseapp.com",
   projectId:"akash-stream",
   storageBucket:"akash-stream.firebasestorage.app",
@@ -119,8 +125,11 @@ const firebaseConfig={
   appId:"1:237310635286:web:5a998de465cd9d5dbdb437"
 };
 
+const ADMIN_EMAIL="bayazid18ir100@gmail.com";
+// Paste your Cloudflare Worker address here (no trailing slash). Example: "https://akash-proxy.yourname.workers.dev"
+const PROXY="";
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
-const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music"];
+const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music","HTTPS only"];
 const $=i=>document.getElementById(i);
 let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false;
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
@@ -131,10 +140,11 @@ const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
   chans=s.docs.map(d=>({id:d.id,...d.data()}));render();
-},()=>{$("grid").innerHTML='<div class="empty">Channel list load hoy nai. Internet check koro.</div>'});
+},()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your internet and Firestore rules.</div>'});
 
 onAuthStateChanged(auth,u=>{
-  isAdmin=!!u;
+  isAdmin=!!u&&(u.email||"").toLowerCase()===ADMIN_EMAIL;
+  if(u&&!isAdmin){$("lerr").textContent="This account does not have admin access";signOut(auth)}
   $("loginBox").classList.toggle("hide",isAdmin);
   $("panel").classList.toggle("hide",!isAdmin);
   $("fab").classList.toggle("show",isAdmin);
@@ -167,6 +177,7 @@ function match(k,c){
   if(k==="Favourites")return favs.includes(c.url);
   if(k==="Bangladesh")return c.cty==="BD";
   if(k==="India")return c.cty==="IN";
+  if(k==="HTTPS only")return (c.url||"").startsWith("https://");
   return c.cat===k}
 
 function renderTabs(){
@@ -192,7 +203,7 @@ function card(c){
   if(isAdmin){
     const a=document.createElement("div");a.className="ad";
     const e=document.createElement("button");e.className="e";e.textContent="Edit";e.onclick=ev=>{ev.stopPropagation();editCh(c)};
-    const x=document.createElement("button");x.textContent="Delete";x.onclick=async ev=>{ev.stopPropagation();if(!confirm("Muchbe?"))return;try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete hoy nai")}};
+    const x=document.createElement("button");x.textContent="Delete";x.onclick=async ev=>{ev.stopPropagation();if(!confirm("Delete this channel?"))return;try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete failed")}};
     a.append(e,x);d.append(a);
   }
   d.onclick=()=>play(c);
@@ -204,16 +215,16 @@ function render(){
   renderTabs();
   g.innerHTML="";
   const list=chans.filter(c=>match(tab,c)&&(c.name||"").toLowerCase().includes(q));
-  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">Kono channel nai.</div>';return}
+  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">No channels found.</div>';return}
   list.forEach(c=>g.appendChild(card(c)))}
 
 async function editCh(c){
-  const name=prompt("Channel-er naam",c.name);if(name===null)return;
+  const name=prompt("Channel name",c.name);if(name===null)return;
   const cat=prompt("Category: "+CATS.join(", "),c.cat);if(cat===null)return;
-  const cty=prompt("Country: BD ba IN",c.cty);if(cty===null)return;
-  const logo=prompt("Logo-r link (khali rakhle logo thakbe na)",c.logo||"");if(logo===null)return;
+  const cty=prompt("Country: BD or IN",c.cty);if(cty===null)return;
+  const logo=prompt("Logo link (leave empty for no logo)",c.logo||"");if(logo===null)return;
   try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim()})}
-  catch(e){alert("Edit hoy nai")}}
+  catch(e){alert("Edit failed")}}
 
 function play(c){
   cur=c;const v=$("v");
@@ -221,12 +232,15 @@ function play(c){
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("Ei stream http, tai browser atkay.");render();return}
+  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
+  const playUrl=(httpOnly&&PROXY)?PROXY+"/?url="+encodeURIComponent(c.url):c.url;
+  const failMsg=(httpOnly&&!PROXY)?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
+  v.onerror=()=>fail(failMsg);
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
-    hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
+    hls=new Hls();hls.loadSource(playUrl);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream load hocche na")});
-  }else{v.src=c.url;v.play().catch(()=>{})}
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
+  }else{v.src=playUrl;v.play().catch(()=>{})}
   render()}
 
 $("q").oninput=render;
@@ -238,17 +252,86 @@ $("aBtn").onclick=toggleAdmin;$("fab").onclick=toggleAdmin;
 $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
-  catch(e){$("lerr").textContent="Login hoy nai ("+(e.code||e.message)+")"}};
+  catch(e){$("lerr").textContent="Login failed ("+(e.code||e.message)+")"}};
+const gProvider=new GoogleAuthProvider();
+gProvider.setCustomParameters({prompt:"select_account"});
+$("googleLoginBtn").onclick=async()=>{
+  $("lerr").textContent="";
+  try{await signInWithPopup(auth,gProvider)}
+  catch(e){
+    if(e.code==="auth/popup-blocked"){try{await signInWithRedirect(auth,gProvider)}catch(e2){$("lerr").textContent="Google login failed ("+(e2.code||e2.message)+")"}}
+    else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"}
+  }};
+getRedirectResult(auth).catch(e=>{$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"});
 $("out").onclick=()=>signOut(auth);
+$("m3uFile").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{$("m3u").value=await f.text()}catch(er){alert("Could not read the file")}};
 $("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 
 $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
-  catch(e){alert("Link theke load hoy nai (CORS atkate pare). m3u text paste koro.")}};
+  catch(e){alert("Could not load from the link (it may be blocked by CORS). Paste the m3u text instead.")}};
+
+// ===== Auto-fill logos from the public iptv-org database =====
+const normName=s=>(s||"").toLowerCase().replace(/\[[^\]]*\]|\([^)]*\)/g,"").replace(/[^\p{L}\p{N}]/gu,"");
+const stripTv=k=>{let r=k;while(/(tv|hd)$/.test(r)&&r.length>3)r=r.replace(/(tv|hd)$/,"");return r};
+const digitsOf=k=>(k.match(/\d+/g)||[]).join("-");
+function editDist(a,b){
+  const m=a.length,n=b.length,d=[];
+  for(let i=0;i<=m;i++){d[i]=[i];}
+  for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[m][n]}
+function buildLogoMatcher(chs,lgs){
+  const best={};
+  lgs.forEach(l=>{
+    if(!l.url||!/^https:\/\//.test(l.url))return;
+    const o=best[l.channel];
+    if(!o||(o.format==="SVG"&&l.format!=="SVG"))best[l.channel]=l});
+  const idx=new Map(),keys=[];
+  const add=(k,ch)=>{if(!k||k.length<2)return;const a=idx.get(k);if(a)a.push(ch);else{idx.set(k,[ch]);keys.push(k)}};
+  chs.forEach(ch=>{
+    if(!best[ch.id])return;
+    [ch.name].concat(ch.alt_names||[]).forEach(n=>{const k=normName(n);add(k,ch);const t=stripTv(k);if(t!==k)add(t,ch)})});
+  return function(name,cty){
+    const k=normName(name),t=stripTv(k);
+    if(!k)return null;
+    let arr=idx.get(k)||idx.get(t);
+    if(!arr&&k.length>=7){
+      for(const key of keys){
+        if(key[0]!==k[0]||Math.abs(key.length-k.length)>1)continue;
+        if(digitsOf(key)!==digitsOf(k))continue;
+        if(editDist(key,k)<=1){arr=idx.get(key);break}}}
+    if(!arr)return null;
+    const ch=arr.find(x=>x.country===cty)||arr[0];
+    return best[ch.id].url}}
+
+$("logoBtn").onclick=async()=>{
+  const st=$("logoMsg"),btn=$("logoBtn");
+  const missing=chans.filter(c=>!c.logo);
+  if(!missing.length){st.textContent="All channels already have logos.";return}
+  btn.disabled=true;st.textContent="Downloading logo database...";
+  try{
+    const [a,b]=await Promise.all([fetch("https://iptv-org.github.io/api/channels.json"),fetch("https://iptv-org.github.io/api/logos.json")]);
+    if(!a.ok||!b.ok)throw new Error("download failed");
+    const [chs,lgs]=await Promise.all([a.json(),b.json()]);
+    st.textContent="Matching "+missing.length+" channels...";
+    const find=buildLogoMatcher(chs,lgs);
+    const found=[];
+    missing.forEach(c=>{const u=find(c.name,c.cty);if(u)found.push({id:c.id,logo:u})});
+    for(let i=0;i<found.length;i+=400){
+      const w=writeBatch(db);
+      found.slice(i,i+400).forEach(f=>w.update(doc(db,"channels",f.id),{logo:f.logo}));
+      await w.commit()}
+    st.textContent="Done: logos added to "+found.length+" of "+missing.length+" channels. Use Edit for the rest.";
+  }catch(e){st.textContent="Failed: "+(e.message||e)}
+  btn.disabled=false};
 
 $("imp").onclick=async()=>{
   const items=parse($("m3u").value,$("icty").value,$("icat").value);
-  if(!items.length)return alert("Kono channel pawa jay nai");
+  if(!items.length)return alert("No channels found in the playlist");
   $("imp").disabled=true;
   try{
     for(let i=0;i<items.length;i+=400){
@@ -256,16 +339,17 @@ $("imp").onclick=async()=>{
       items.slice(i,i+400).forEach(c=>b.set(doc(db,"channels",hid(c.url)),c));
       await b.commit();
     }
-    $("m3u").value="";alert(items.length+" ta channel add hoyeche");
-  }catch(e){alert("Add hoy nai: "+(e.message||e))}
+    $("m3u").value="";alert(items.length+" channels added");
+  }catch(e){alert("Import failed: "+(e.message||e))}
   $("imp").disabled=false};
 
 $("clr").onclick=async()=>{
-  if(!confirm("Sob channel muchbe?"))return;
+  if(!confirm("Delete all channels?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
-  catch(e){alert("Muchte parini")}};
+  catch(e){alert("Could not delete")}};
 
 render();
+if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 </script>
 </body>
 </html>
