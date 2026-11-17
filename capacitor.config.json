@@ -3,10 +3,11 @@
   "appName": "Akash Stream",
   "webDir": "www",
   "server": {
-    "androidScheme": "http",
+    "url": "https://bayazid18ir100-web.github.io/akash-stream/",
     "cleartext": true
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": true,
+    "appendUserAgent": "AkashApp/1"
   }
 }
