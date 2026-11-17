@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07122b">
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -62,6 +63,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <input id="q" name="channel-search" placeholder="Search channels..." autocomplete="off">
 <select id="cty"><option value="">BD + IN</option><option value="BD">Bangladesh</option><option value="IN">India</option></select>
 <button id="favb" class="chip">★ Favorites</button>
+<button id="httpb" class="chip">HTTPS only</button>
 </div>
 <div class="grid" id="grid"></div>
 
@@ -107,7 +109,7 @@ const firebaseConfig={
 const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 const CATS=["All","Sports","News","Entertainment","Kids","Movies","Music"];
 const $=i=>document.getElementById(i);
-let chans=[],favs=[],cat="All",onlyFav=false,cur=null,hls=null,isAdmin=false;
+let chans=[],favs=[],cat="All",onlyFav=false,cur=null,hls=null,isAdmin=false,httpsOnly=false;
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}};
 
@@ -152,7 +154,7 @@ function renderCats(){
 
 function render(){
   const q=$("q").value.toLowerCase(),cy=$("cty").value,g=$("grid");g.innerHTML="";
-  const list=chans.filter(c=>(cat==="All"||c.cat===cat)&&(!cy||c.cty===cy)&&(c.name||"").toLowerCase().includes(q)&&(!onlyFav||favs.includes(c.url)));
+  const list=chans.filter(c=>(cat==="All"||c.cat===cat)&&(!cy||c.cty===cy)&&(c.name||"").toLowerCase().includes(q)&&(!onlyFav||favs.includes(c.url))&&(!httpsOnly||(c.url||"").startsWith("https://")));
   if(!list.length){g.innerHTML='<div class="empty">No channels found.</div>';return}
   list.forEach(c=>{
     const d=document.createElement("div");d.className="ch"+(cur&&cur.url===c.url?" on":"");
@@ -172,16 +174,19 @@ function play(c){
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("This stream uses http, which browsers block on https sites.");render();return}
+  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
+  const failMsg=httpOnly?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
+  v.onerror=()=>fail(failMsg);
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
     hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream failed to load")});
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
   }else{v.src=c.url;v.play().catch(()=>{})}
   render()}
 
 $("q").oninput=render;$("cty").onchange=render;
 $("favb").onclick=function(){onlyFav=!onlyFav;this.classList.toggle("on",onlyFav);render()};
+$("httpb").onclick=function(){httpsOnly=!httpsOnly;this.classList.toggle("on",httpsOnly);render()};
 $("adminBtn").onclick=()=>{const a=$("admin");a.style.display=a.style.display==="block"?"none":"block";if(a.style.display==="block")a.scrollIntoView({behavior:"smooth"})};
 
 $("loginBtn").onclick=async()=>{
