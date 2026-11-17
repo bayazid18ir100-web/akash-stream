@@ -45,6 +45,11 @@ button{cursor:pointer}
 textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monospace;font-size:12px}
 .empty{color:var(--mut);padding:20px 4px}
 .hide{display:none!important}
+body.pip{padding:0;overflow:hidden}
+body.pip header,body.pip .bar,body.pip .grid,body.pip .now,body.pip #admin,body.pip .msg{display:none!important}
+body.pip main{padding:0;max-width:none}
+body.pip .stick{position:fixed;inset:0;padding:0;z-index:99;background:#000}
+body.pip .player{width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;margin:0}
 </style>
 </head>
 <body>
