@@ -39,16 +39,22 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Set app icon
+      - name: Make app icon and splash screen
         run: |
-          test -f app-icon.png
-          RES=android/app/src/main/res
-          rm -rf $RES/mipmap-anydpi-v26
-          for d in $RES/mipmap-*dpi; do
-            cp app-icon.png "$d/ic_launcher.png"
-            cp app-icon.png "$d/ic_launcher_round.png"
-            cp app-icon.png "$d/ic_launcher_foreground.png"
-          done
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin imagemagick
+          mkdir -p assets
+          SRC=icon.svg
+          [ -f "$SRC" ] || SRC=logo.svg
+          rsvg-convert -a -w 820 -h 820 "$SRC" -o /tmp/ic.png
+          rsvg-convert -a -w 640 -h 640 "$SRC" -o /tmp/fg.png
+          rsvg-convert -a -w 900 -h 900 "$SRC" -o /tmp/sp.png
+          convert -size 1024x1024 "xc:#07122b" /tmp/ic.png -gravity center -composite assets/icon-only.png
+          convert -size 1024x1024 xc:none /tmp/fg.png -gravity center -composite assets/icon-foreground.png
+          convert -size 1024x1024 "xc:#07122b" assets/icon-background.png
+          convert -size 2732x2732 "xc:#07122b" /tmp/sp.png -gravity center -composite assets/splash.png
+          cp assets/splash.png assets/splash-dark.png
+          npx --yes @capacitor/assets@3 generate --android --iconBackgroundColor '#07122b' --splashBackgroundColor '#07122b'
 
       - name: Enable Picture-in-Picture and background play
         run: |
