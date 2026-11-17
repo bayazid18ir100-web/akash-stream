@@ -178,11 +178,11 @@ function play(c){
   const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
   const failMsg=httpOnly?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
   const src=httpOnly?PROXY+"?url="+encodeURIComponent(c.url):c.url;
-  v.onerror=()=>fail(failMsg);
+  v.onerror=()=>fail(httpOnly?"Proxy error: video "+(v.error?v.error.code:""):failMsg);
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
     hls=new Hls();hls.loadSource(src);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(httpOnly?"Proxy error: "+d.details+" "+((d.response&&d.response.code)||""):failMsg)});
   }else{v.src=src;v.play().catch(()=>{})}
   render()}
 
