@@ -30,7 +30,11 @@ video{width:100%;height:100%;background:#000}
 .nowbar .now{flex:1;min-width:0;border:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nb{flex:none;display:flex;align-items:center;justify-content:center;width:42px;height:34px;padding:0;border-radius:10px}
 .nb svg{width:20px;height:20px}
-body.pip header,body.pip .nowbar,body.pip .now,body.pip main,body.pip .fab{display:none}
+body.pip header,body.pip .nowbar,body.pip .now,body.pip main,body.pip .fab,body.pip .sb,body.pip .updbar{display:none!important}
+body.land.playing{overflow:hidden}
+body.land.playing .top{position:fixed;inset:0;z-index:60;padding:0;background:#000}
+body.land.playing header,body.land.playing .nowbar,body.land.playing .sb,body.land.playing .fab,body.land.playing .updbar{display:none!important}
+body.land.playing .player{width:100vw;height:100vh;max-height:none;aspect-ratio:auto}
 body.pip .player{max-height:100vh}
 .sb{display:none;padding:8px 12px 0}
 .sb.show{display:flex}
@@ -69,7 +73,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v4</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
@@ -135,6 +139,7 @@ const firebaseConfig={
 const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 // Paste your Cloudflare Worker address here (no trailing slash). Example: "https://akash-proxy.yourname.workers.dev"
 const PROXY="https://akashproxy.bayazid18ir100.workers.dev";
+const INAPP=/AkashApp/.test(navigator.userAgent);
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
 const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music","HTTPS only"];
 const $=i=>document.getElementById(i);
@@ -250,12 +255,12 @@ async function editCh(c){
   catch(e){alert("Edit failed")}}
 
 function play(c){
-  cur=c;const v=$("v");
+  cur=c;const v=$("v");document.body.classList.add("playing");
   $("msg").style.display="none";
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
+  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!INAPP;
   const playUrl=(httpOnly&&PROXY)?PROXY+"/?url="+encodeURIComponent(c.url):c.url;
   const failMsg=(httpOnly&&!PROXY)?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
   v.onerror=()=>fail(failMsg);
@@ -470,6 +475,28 @@ $("clr").onclick=async()=>{
   if(!confirm("Delete all channels?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
   catch(e){alert("Could not delete")}};
+
+(function(){
+  const body=document.body;
+  const chk=()=>{if(window.innerHeight>320)body.classList.remove("pip")};
+  const land=()=>body.classList.toggle("land",window.innerWidth>window.innerHeight&&window.innerHeight<=500);
+  ["resize","focus","pageshow","click","touchstart"].forEach(e=>window.addEventListener(e,chk,{passive:true}));
+  ["resize","orientationchange","pageshow"].forEach(e=>window.addEventListener(e,land));
+  document.addEventListener("visibilitychange",chk);chk();land();
+  // update bar (only inside the Android app)
+  const m=navigator.userAgent.match(/AkashApp\/(\d+)/);if(!m)return;const cur=+m[1];
+  fetch("https://api.github.com/repos/bayazid18ir100-web/akash-stream/releases/latest").then(r=>r.json()).then(j=>{
+    const n=parseInt(String(j.tag_name||"").replace(/\D/g,""),10);
+    const a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));
+    if(!a||!(n>cur))return;
+    const b=document.createElement("div");b.className="updbar";
+    b.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:50;background:#0e1f45;border:1px solid #22d3ee;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between";
+    const t=document.createElement("span");t.textContent="নতুন আপডেট এসেছে";
+    const u=document.createElement("button");u.className="chip on";u.textContent="আপডেট করুন";
+    u.onclick=()=>{location.href=a.browser_download_url};
+    b.append(t,u);body.appendChild(b);
+  }).catch(()=>{});
+})();
 
 render();
 if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
