@@ -26,7 +26,11 @@ video{width:100%;height:100%;background:#000}
 .msg img{width:64px;height:64px;border-radius:16px}
 .now{padding:6px 14px;color:var(--mut);font-size:13px;border-bottom:1px solid var(--line)}
 .now b{color:var(--tx)}
-body.pip header,body.pip .now,body.pip main,body.pip .fab{display:none}
+.nowbar{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);padding-right:8px}
+.nowbar .now{flex:1;min-width:0;border:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.nb{flex:none;display:flex;align-items:center;justify-content:center;width:42px;height:34px;padding:0;border-radius:10px}
+.nb svg{width:20px;height:20px}
+body.pip header,body.pip .nowbar,body.pip .now,body.pip main,body.pip .fab{display:none}
 body.pip .player{max-height:100vh}
 .sb{display:none;padding:8px 12px 0}
 .sb.show{display:flex}
@@ -71,7 +75,10 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
 <div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
-<div class="now" id="now">Nothing is playing</div>
+<div class="nowbar"><div class="now" id="now">Nothing is playing</div>
+<button class="nb" id="prevBtn" aria-label="Previous channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg></button>
+<button class="nb" id="nextBtn" aria-label="Next channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+</div>
 <div class="sb" id="sb"><input id="q" name="channel-search" placeholder="Search channels..." autocomplete="off"></div>
 </div>
 
@@ -94,11 +101,11 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div class="bar"><input id="m3uFile" type="file" accept=".m3u,.m3u8,.txt,text/plain,*/*"></div>
 <textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;https://...png&quot; group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
 <div class="bar">
-<select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
+<select id="icty"><option value="AUTO">Country: Auto-detect</option><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
 <select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option></select>
 </div>
 <div class="bar">
-<button id="logoBtn">Auto-fill missing logos</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
+<button id="logoBtn">Auto-fill missing logos</button><button id="ctyBtn">Auto-detect country</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
 </div>
 <div class="bar">
 <button id="imp">Import</button>
@@ -159,16 +166,28 @@ function mapCat(g){g=(g||"").toLowerCase();
   if(/music/.test(g))return"Music";
   return"Entertainment"}
 function hid(t){let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return"c"+h.toString(36)}
+function detectCty(name,group,tvgid){
+  const t=(name||"")+" "+(group||"");
+  if(t.includes("\u{1F1E7}\u{1F1E9}"))return"BD";
+  if(t.includes("\u{1F1EE}\u{1F1F3}"))return"IN";
+  const id=(tvgid||"").toLowerCase();
+  if(/\.bd$/.test(id))return"BD";
+  if(/\.in$/.test(id))return"IN";
+  const g=(group||"").toLowerCase();
+  if(/bangladesh|\bbd\b/.test(g))return"BD";
+  if(/\bindia\b/.test(g))return"IN";
+  return null}
 function parse(text,cty,forceCat){
   const out=[];let meta=null;
   text.split(/\r?\n/).forEach(raw=>{const l=raw.trim();
     if(l.startsWith("#EXTINF")){
       const g=l.match(/group-title="([^"]*)"/);
       const lg=l.match(/tvg-logo="([^"]*)"/);
+      const tid=l.match(/tvg-id="([^"]*)"/);
       const i=l.lastIndexOf(",");
       const nm=(i>=0?l.slice(i+1).trim():"")||"Channel";
-      meta={name:nm,cat:forceCat||mapCat((g?g[1]:"")+" "+nm),logo:lg?lg[1]:""};
-    }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty,url:l,logo:meta.logo});meta=null}
+      meta={name:nm,cat:forceCat||mapCat((g?g[1]:"")+" "+nm),logo:lg?lg[1]:"",cty:detectCty(nm,g?g[1]:"",tid?tid[1]:"")};
+    }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty:cty==="AUTO"?meta.cty:cty,url:l,logo:meta.logo});meta=null}
   });
   return out}
 
@@ -209,12 +228,16 @@ function card(c){
   d.onclick=()=>play(c);
   return d}
 
+function visible(){
+  const q=$("q").value.toLowerCase().trim();
+  return chans.filter(c=>match(tab,c)&&(c.name||"").toLowerCase().includes(q))}
+
 function render(){
-  const q=$("q").value.toLowerCase().trim(),g=$("grid");
+  const g=$("grid");
   $("tot").textContent="Total Channels: "+chans.length;
   renderTabs();
   g.innerHTML="";
-  const list=chans.filter(c=>match(tab,c)&&(c.name||"").toLowerCase().includes(q));
+  const list=visible();
   if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">No channels found.</div>';return}
   list.forEach(c=>g.appendChild(card(c)))}
 
@@ -242,6 +265,17 @@ function play(c){
     hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
   }else{v.src=playUrl;v.play().catch(()=>{})}
   render()}
+
+function step(dir){
+  const list=visible();
+  if(!list.length)return;
+  let i=cur?list.findIndex(c=>c.url===cur.url):-1;
+  if(i<0)i=dir>0?-1:0;
+  play(list[(i+dir+list.length)%list.length]);
+  const el=document.querySelector(".card.on");
+  if(el)el.scrollIntoView({block:"center",behavior:"smooth"})}
+$("prevBtn").onclick=()=>step(-1);
+$("nextBtn").onclick=()=>step(1);
 
 $("q").oninput=render;
 $("sBtn").onclick=()=>{const s=$("sb");s.classList.toggle("show");if(s.classList.contains("show"))$("q").focus();else{$("q").value="";render()}};
@@ -273,7 +307,14 @@ $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
   catch(e){alert("Could not load from the link (it may be blocked by CORS). Paste the m3u text instead.")}};
 
-// ===== Auto-fill logos from the public iptv-org database =====
+// ===== Database helpers (iptv-org: public channel list with countries and logos) =====
+const dbCache={};
+async function getDb(name){
+  if(!dbCache[name]){
+    const r=await fetch("https://iptv-org.github.io/api/"+name+".json");
+    if(!r.ok)throw new Error(name+" download failed");
+    dbCache[name]=await r.json()}
+  return dbCache[name]}
 const normName=s=>(s||"").toLowerCase().replace(/\[[^\]]*\]|\([^)]*\)/g,"").replace(/[^\p{L}\p{N}]/gu,"");
 const stripTv=k=>{let r=k;while(/(tv|hd)$/.test(r)&&r.length>3)r=r.replace(/(tv|hd)$/,"");return r};
 const digitsOf=k=>(k.match(/\d+/g)||[]).join("-");
@@ -286,27 +327,28 @@ function editDist(a,b){
   return d[m][n]}
 function buildLogoMatcher(chs,lgs){
   const best={};
-  lgs.forEach(l=>{
+  (lgs||[]).forEach(l=>{
     if(!l.url||!/^https:\/\//.test(l.url))return;
     const o=best[l.channel];
     if(!o||(o.format==="SVG"&&l.format!=="SVG"))best[l.channel]=l});
   const idx=new Map(),keys=[];
   const add=(k,ch)=>{if(!k||k.length<2)return;const a=idx.get(k);if(a)a.push(ch);else{idx.set(k,[ch]);keys.push(k)}};
   chs.forEach(ch=>{
-    if(!best[ch.id])return;
     [ch.name].concat(ch.alt_names||[]).forEach(n=>{const k=normName(n);add(k,ch);const t=stripTv(k);if(t!==k)add(t,ch)})});
   return function(name,cty){
     const k=normName(name),t=stripTv(k);
     if(!k)return null;
-    let arr=idx.get(k)||idx.get(t);
+    let arr=idx.get(k)||idx.get(t),exact=!!arr;
     if(!arr&&k.length>=7){
       for(const key of keys){
         if(key[0]!==k[0]||Math.abs(key.length-k.length)>1)continue;
         if(digitsOf(key)!==digitsOf(k))continue;
         if(editDist(key,k)<=1){arr=idx.get(key);break}}}
     if(!arr)return null;
-    const ch=arr.find(x=>x.country===cty)||arr[0];
-    return best[ch.id].url}}
+    const wl=arr.filter(x=>best[x.id]);
+    const pl=wl.find(x=>x.country===cty)||wl[0];
+    const cs=Array.from(new Set(arr.map(x=>x.country)));
+    return {logo:pl?best[pl.id].url:null,country:cs.length===1?cs[0]:null,exact}}}
 
 $("logoBtn").onclick=async()=>{
   const st=$("logoMsg"),btn=$("logoBtn");
@@ -314,13 +356,11 @@ $("logoBtn").onclick=async()=>{
   if(!missing.length){st.textContent="All channels already have logos.";return}
   btn.disabled=true;st.textContent="Downloading logo database...";
   try{
-    const [a,b]=await Promise.all([fetch("https://iptv-org.github.io/api/channels.json"),fetch("https://iptv-org.github.io/api/logos.json")]);
-    if(!a.ok||!b.ok)throw new Error("download failed");
-    const [chs,lgs]=await Promise.all([a.json(),b.json()]);
+    const [chs,lgs]=await Promise.all([getDb("channels"),getDb("logos")]);
     st.textContent="Matching "+missing.length+" channels...";
     const find=buildLogoMatcher(chs,lgs);
     const found=[];
-    missing.forEach(c=>{const u=find(c.name,c.cty);if(u)found.push({id:c.id,logo:u})});
+    missing.forEach(c=>{const r=find(c.name,c.cty);if(r&&r.logo)found.push({id:c.id,logo:r.logo})});
     for(let i=0;i<found.length;i+=400){
       const w=writeBatch(db);
       found.slice(i,i+400).forEach(f=>w.update(doc(db,"channels",f.id),{logo:f.logo}));
@@ -329,11 +369,34 @@ $("logoBtn").onclick=async()=>{
   }catch(e){st.textContent="Failed: "+(e.message||e)}
   btn.disabled=false};
 
+$("ctyBtn").onclick=async()=>{
+  const st=$("logoMsg"),btn=$("ctyBtn");
+  btn.disabled=true;st.textContent="Downloading channel database...";
+  try{
+    const find=buildLogoMatcher(await getDb("channels"),[]);
+    const changes=[];
+    chans.forEach(c=>{
+      let n=detectCty(c.name,"","");
+      if(!n){const r=find(c.name,c.cty);if(r&&r.exact&&(r.country==="BD"||r.country==="IN"))n=r.country}
+      if(n&&n!==c.cty)changes.push({id:c.id,cty:n})});
+    for(let i=0;i<changes.length;i+=400){
+      const w=writeBatch(db);
+      changes.slice(i,i+400).forEach(f=>w.update(doc(db,"channels",f.id),{cty:f.cty}));
+      await w.commit()}
+    st.textContent="Done: country corrected for "+changes.length+" of "+chans.length+" channels. Use Edit for the rest.";
+  }catch(e){st.textContent="Failed: "+(e.message||e)}
+  btn.disabled=false};
+
 $("imp").onclick=async()=>{
   const items=parse($("m3u").value,$("icty").value,$("icat").value);
   if(!items.length)return alert("No channels found in the playlist");
   $("imp").disabled=true;
   try{
+    const unk=items.filter(c=>!c.cty);
+    if(unk.length){
+      let find=null;
+      try{find=buildLogoMatcher(await getDb("channels"),[])}catch(e){}
+      unk.forEach(c=>{let n="BD";if(find){const r=find(c.name,"BD");if(r&&r.exact&&(r.country==="BD"||r.country==="IN"))n=r.country}c.cty=n})}
     for(let i=0;i<items.length;i+=400){
       const b=writeBatch(db);
       items.slice(i,i+400).forEach(c=>b.set(doc(db,"channels",hid(c.url)),c));
