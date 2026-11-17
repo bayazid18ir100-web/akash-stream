@@ -53,7 +53,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div class="now" id="now">Kichu play hocche na</div>
 <div class="bar" id="cats"></div>
 <div class="bar">
-<input id="q" placeholder="Channel khojo...">
+<input id="q" name="channel-search" placeholder="Channel khojo..." autocomplete="off">
 <select id="cty"><option value="">BD + IN</option><option value="BD">Bangladesh</option><option value="IN">India</option></select>
 <button id="favb" class="chip">★ Favorites</button>
 </div>
@@ -64,7 +64,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
 <label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="min-width:0;flex:none"> Password dekhao</label>
-<button id="loginBtn">Login</button> <span id="lerr" style="color:#ff6b6b"></span>
+<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Google diye Login</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
@@ -84,7 +84,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ====== Firebase config ======
 const firebaseConfig={
@@ -97,6 +97,7 @@ const firebaseConfig={
 };
 // =================================================
 
+const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 const CATS=["All","Sports","News","Entertainment","Kids","Movies","Music"];
 const $=i=>document.getElementById(i);
 let chans=[],favs=[],cat="All",onlyFav=false,cur=null,hls=null,isAdmin=false;
@@ -111,7 +112,8 @@ onSnapshot(query(col,orderBy("name")),s=>{
 },()=>{$("grid").innerHTML='<div class="empty">Channel list load hoy nai. Firebase config ar rules check koro.</div>'});
 
 onAuthStateChanged(auth,u=>{
-  isAdmin=!!u;
+  isAdmin=!!u&&(u.email||"").toLowerCase()===ADMIN_EMAIL;
+  if(u&&!isAdmin){$("lerr").textContent="Ei account-er admin access nai";signOut(auth)}
   $("loginBox").classList.toggle("hide",isAdmin);
   $("panel").classList.toggle("hide",!isAdmin);
   render();
@@ -179,6 +181,16 @@ $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
   catch(e){$("lerr").textContent="Login hoy nai ("+(e.code||e.message)+")"}};
+const gProvider=new GoogleAuthProvider();
+gProvider.setCustomParameters({prompt:"select_account"});
+$("googleLoginBtn").onclick=async()=>{
+  $("lerr").textContent="";
+  try{await signInWithPopup(auth,gProvider)}
+  catch(e){
+    if(e.code==="auth/popup-blocked"){try{await signInWithRedirect(auth,gProvider)}catch(e2){$("lerr").textContent="Google login hoy nai ("+(e2.code||e2.message)+")"}}
+    else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){$("lerr").textContent="Google login hoy nai ("+(e.code||e.message)+")"}
+  }};
+getRedirectResult(auth).catch(e=>{$("lerr").textContent="Google login hoy nai ("+(e.code||e.message)+")"});
 $("out").onclick=()=>signOut(auth);
 $("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 
