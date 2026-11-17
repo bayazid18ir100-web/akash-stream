@@ -105,7 +105,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option></select>
 </div>
 <div class="bar">
-<button id="logoBtn">Auto-fill missing logos</button><button id="ctyBtn">Auto-detect country</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
+<button id="logoBtn">Auto-fill missing logos</button><button id="ctyBtn">Auto-detect country</button><button id="scanBtn">Check &amp; remove dead channels</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
 </div>
 <div class="bar">
 <button id="imp">Import</button>
@@ -386,6 +386,66 @@ $("ctyBtn").onclick=async()=>{
     st.textContent="Done: country corrected for "+changes.length+" of "+chans.length+" channels. Use Edit for the rest.";
   }catch(e){st.textContent="Failed: "+(e.message||e)}
   btn.disabled=false};
+
+// ===== Check streams and remove channels that cannot load =====
+async function checkStream(c,ms){
+  const isHttp=/^http:\/\//i.test(c.url);
+  if(isHttp&&!PROXY)return false;
+  if(!/\.m3u8/i.test(c.url))return true; // only HLS (.m3u8) streams can be tested from the browser
+  const wrap=u=>(/^http:\/\//i.test(u)&&PROXY)?PROXY+"/?url="+encodeURIComponent(u):u;
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),ms);
+  try{
+    let u=wrap(c.url);
+    for(let depth=0;depth<3;depth++){
+      const r=await fetch(u,{signal:ctl.signal});
+      if(!r.ok)return false;
+      const t=await r.text();
+      if(!t.includes("#EXTM3U"))return false;
+      const line=t.split(/\r?\n/).map(x=>x.trim()).find(x=>x&&x[0]!=="#");
+      if(!line)return false;
+      const next=new URL(line,u).toString();
+      if(t.includes("#EXT-X-STREAM-INF")||/\.m3u8/i.test(line)){u=wrap(next);continue}
+      const sg=await fetch(wrap(next),{signal:ctl.signal});
+      const ok=sg.ok;
+      if(sg.body)sg.body.cancel();
+      return ok}
+    return true;
+  }catch(e){return false}
+  finally{clearTimeout(timer)}}
+
+let scanning=false;
+$("scanBtn").onclick=async()=>{
+  const st=$("logoMsg"),btn=$("scanBtn");
+  if(scanning){scanning=false;return}
+  if(!chans.length){st.textContent="No channels to check.";return}
+  scanning=true;btn.textContent="Stop checking";
+  const list=chans.slice(),dead=[];
+  let done=0,i=0;
+  const worker=async()=>{
+    while(scanning&&i<list.length){
+      const c=list[i++];
+      let ok=await checkStream(c,8000);
+      if(!ok)ok=await checkStream(c,12000);
+      if(!ok)dead.push(c);
+      done++;
+      st.textContent="Checked "+done+" of "+list.length+" - not working: "+dead.length+" (keep the app open)"}};
+  await Promise.all(Array.from({length:6},worker));
+  const finished=scanning;
+  scanning=false;btn.textContent="Check & remove dead channels";
+  if(!finished){st.textContent="Stopped after checking "+done+" channels. Nothing was deleted.";return}
+  if(!dead.length){st.textContent="All "+list.length+" channels loaded fine.";return}
+  const names=dead.slice(0,15).map(c=>c.name).join(", ")+(dead.length>15?", ...":"");
+  if(!confirm("Delete "+dead.length+" channels that could not load?\n\n"+names+"\n\nChannels that are only offline for a short time will be deleted too.")){
+    st.textContent=dead.length+" channels did not load. Nothing was deleted.";return}
+  try{
+    for(let k=0;k<dead.length;k+=400){
+      const w=writeBatch(db);
+      dead.slice(k,k+400).forEach(c=>w.delete(doc(db,"channels",c.id)));
+      await w.commit()}
+    st.textContent="Deleted "+dead.length+" dead channels.";
+  }catch(e){st.textContent="Could not delete: "+(e.message||e)}};
+
 
 $("imp").onclick=async()=>{
   const items=parse($("m3u").value,$("icty").value,$("icat").value);
