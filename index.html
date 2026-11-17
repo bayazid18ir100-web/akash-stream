@@ -1,127 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07122b">
-<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
-<link rel="apple-touch-icon" href="icon-192.png">
 <title>Akash Stream</title>
 <style>
 :root{--bg:#07122b;--card:#0e1f45;--line:#1c3366;--tx:#eaf2ff;--mut:#8ea6d1;--cy:#22d3ee;--or:#ff9f43}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;max-width:100%}
-body{margin:0;max-width:100vw;overflow-x:hidden;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
-header img{height:46px;width:auto;max-width:70%}
-header h1{font-size:0;line-height:0;margin:0;flex:1}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+.top{position:sticky;top:0;z-index:30;background:var(--bg);padding-top:env(safe-area-inset-top)}
+header{display:flex;align-items:center;gap:6px;padding:8px 12px}
+header .brand{display:flex;align-items:center;gap:8px;flex:1}
+header img{width:32px;height:32px;border-radius:8px}
+header h1{font-size:19px;margin:0}
 header h1 span{color:var(--cy)}
-main{max-width:1100px;width:100%;min-width:0;margin:0 auto;padding:12px 16px 40px}
-.stick{position:sticky;top:0;z-index:20;background:var(--bg);padding:6px 0 2px}
-.player{background:#000;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/9;border:1px solid var(--line);width:min(100%,calc(38vh*16/9));margin:0 auto}
+.ib{background:none;border:0;font-size:22px;padding:4px 7px;line-height:1}
+.player{background:#000;position:relative;aspect-ratio:16/9;width:100%;max-height:44vh}
 video{width:100%;height:100%;background:#000}
-.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut);pointer-events:none}
-.now{margin:10px 2px;color:var(--mut);font-size:14px}
+.msg{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut);pointer-events:none}
+.msg img{width:64px;height:64px;border-radius:16px}
+.now{padding:6px 14px;color:var(--mut);font-size:13px;border-bottom:1px solid var(--line)}
 .now b{color:var(--tx)}
-.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+body.pip header,body.pip .now,body.pip main,body.pip .fab{display:none}
+body.pip .player{max-height:100vh}
+.sb{display:none;padding:8px 12px 0}
+.sb.show{display:flex}
 input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
 input{flex:1;min-width:0}
-.bar input{flex:1 1 140px;max-width:100%}
 button{cursor:pointer}
-.chip{border-radius:999px;padding:6px 14px;font-size:14px}
-.chip.on{background:linear-gradient(90deg,var(--cy),#3b82f6);color:#04122b;border-color:transparent;font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:10px}
-.ch{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative;min-height:84px}
-.ch:hover,.ch.on{border-color:var(--cy)}
-.ch .n{font-weight:600;font-size:14px;padding-right:22px;overflow-wrap:anywhere}
-.ch .m{color:var(--mut);font-size:12px;margin-top:6px}
-.ch .f{position:absolute;top:8px;right:8px;background:none;border:0;padding:0;font-size:18px;color:var(--mut)}
-.ch .f.on{color:var(--or)}
-.del{position:absolute;bottom:6px;right:8px;background:none;border:0;padding:0;color:#ff6b6b;font-size:13px}
-#admin{display:none;margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+main{max-width:1100px;margin:0 auto;padding:10px 12px 90px}
+.tot{font-size:17px;font-weight:700;color:var(--cy);margin:4px 2px 10px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.chip{border-radius:14px;padding:9px 16px;font-size:14px;white-space:nowrap;flex:none}
+.chip.on{background:linear-gradient(90deg,var(--cy),#3b82f6);color:#04122b;border-color:transparent;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 8px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+.card{cursor:pointer;position:relative;text-align:center;min-width:0}
+.lg{background:var(--card);border:1px solid var(--line);border-radius:14px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card.on .lg{border:2px solid var(--cy);box-shadow:0 0 0 2px rgba(34,211,238,.3)}
+.lg img{width:72%;height:72%;object-fit:contain}
+.lg .ph{font-size:28px;font-weight:700;color:var(--cy)}
+.card .n{font-size:11.5px;margin-top:5px;line-height:1.25;height:29px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.fv{position:absolute;top:2px;right:4px;background:none;border:0;padding:0;font-size:16px;color:var(--mut);z-index:2;text-shadow:0 1px 2px #000;line-height:1}
+.fv.on{color:#ff3b5c}
+.ad{display:flex;gap:8px;justify-content:center}
+.ad button{background:none;border:0;padding:0;font-size:11px;color:#ff6b6b}
+.ad button.e{color:var(--cy)}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--cy),#3b82f6);color:#04122b;font-size:30px;font-weight:700;border:0;display:none;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.5);z-index:40;padding:0}
+.fab.show{display:flex}
+#admin{display:none;margin:10px 12px 100px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
 #admin h3{margin:0 0 10px}
 textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monospace;font-size:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .empty{color:var(--mut);padding:20px 4px}
 .hide{display:none!important}
-@media (orientation:landscape) and (max-height:500px){
-body.playing{overflow:hidden}
-body.playing .stick{position:fixed;inset:0;z-index:60;padding:0;background:#000}
-body.playing .player{width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;margin:0}
-body.playing .now{display:none}
-}
-body.pip{padding:0;overflow:hidden}
-body.pip .updbar,body.pip header,body.pip .bar,body.pip .grid,body.pip .now,body.pip #admin,body.pip .msg{display:none!important}
-body.pip main{padding:0;max-width:none}
-body.pip .stick{position:fixed;inset:0;padding:0;z-index:99;background:#000}
-body.pip .player{width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;margin:0}
 </style>
 </head>
 <body>
+<div class="top">
 <header>
-<img src="logo.svg" alt="Akash Stream">
-<h1>Akash <span>Stream</span></h1>
-<button id="adminBtn" class="chip">Admin</button>
+<div class="brand"><img src="icon.svg" alt=""><h1>Akash <span>Stream</span></h1></div>
+<button class="ib" id="sBtn" aria-label="Search">🔍</button>
+<button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
+<button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
+<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="icon.svg" alt=""><div>Akash Stream-e shagotom<br>Ekta channel select koro</div></div></div>
+<div class="now" id="now">Kichu play hocche na</div>
+<div class="sb" id="sb"><input id="q" placeholder="Channel khojo..."></div>
+</div>
+
 <main>
-<div class="stick">
-<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg">Select a channel</div></div>
-<div class="now" id="now">Nothing is playing</div>
-</div>
-<div class="bar" id="cats"></div>
-<div class="bar">
-<input id="q" name="channel-search" placeholder="Search channels..." autocomplete="off">
-<select id="cty"><option value="">BD + IN</option><option value="BD">Bangladesh</option><option value="IN">India</option></select>
-<button id="favb" class="chip">★ Favorites</button>
-<button id="httpb" class="chip">HTTPS only</button>
-</div>
+<div class="tot" id="tot"></div>
+<div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
+</main>
 
 <div id="admin">
 <div id="loginBox">
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
-<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="min-width:0;flex:none"> Show password</label>
-<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Login with Google</button> <span id="lerr" style="color:#ff6b6b"></span>
+<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="flex:none"> Password dekhao</label>
+<button id="loginBtn">Login</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
 <div class="bar"><input id="lnk" placeholder="m3u link (optional)"><button id="ldBtn">Load</button></div>
-<div class="bar"><input id="m3uFile" type="file" accept=".m3u,.m3u8,.txt,text/plain,audio/x-mpegurl,application/vnd.apple.mpegurl,*/*"></div>
-<textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
+<textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;https://...png&quot; group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
 <div class="bar">
 <select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
+<select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option></select>
+</div>
+<div class="bar">
 <button id="imp">Import</button>
-<button id="clr">Delete all channels</button>
+<button id="clr">Sob channel muchbe</button>
 <button id="out">Logout</button>
 </div>
+<p style="color:var(--mut);font-size:12px;margin:6px 0 0">Playlist-e tvg-logo thakle logo automatic ashbe. Kono channel-er logo/category/country bodlate channel-er niche Edit chapo.</p>
 </div>
 </div>
-</main>
+<button class="fab" id="fab" aria-label="Admin panel">+</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// ====== Firebase config ======
 const firebaseConfig={
-  apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-3OY8",
+  apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-30Y8",
   authDomain:"akash-stream.firebaseapp.com",
   projectId:"akash-stream",
   storageBucket:"akash-stream.firebasestorage.app",
   messagingSenderId:"237310635286",
   appId:"1:237310635286:web:5a998de465cd9d5dbdb437"
 };
-// =================================================
 
-const PROXY="https://akashproxy.bayazid18ir100.workers.dev/";
-const ADMIN_EMAIL="bayazid18ir100@gmail.com";
-const CATS=["All","Sports","News","Entertainment","Kids","Movies","Music"];
+const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
+const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music"];
 const $=i=>document.getElementById(i);
-let chans=[],favs=[],cat="All",onlyFav=false,cur=null,hls=null,isAdmin=false,httpsOnly=false;
+let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false;
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}};
 
@@ -130,13 +131,13 @@ const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
   chans=s.docs.map(d=>({id:d.id,...d.data()}));render();
-},()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your Firebase config and rules.</div>'});
+},()=>{$("grid").innerHTML='<div class="empty">Channel list load hoy nai. Internet check koro.</div>'});
 
 onAuthStateChanged(auth,u=>{
-  isAdmin=!!u&&(u.email||"").toLowerCase()===ADMIN_EMAIL;
-  if(u&&!isAdmin){$("lerr").textContent="This account does not have admin access";signOut(auth)}
+  isAdmin=!!u;
   $("loginBox").classList.toggle("hide",isAdmin);
   $("panel").classList.toggle("hide",!isAdmin);
+  $("fab").classList.toggle("show",isAdmin);
   render();
 });
 
@@ -148,90 +149,106 @@ function mapCat(g){g=(g||"").toLowerCase();
   if(/music/.test(g))return"Music";
   return"Entertainment"}
 function hid(t){let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return"c"+h.toString(36)}
-function parse(text,cty){
+function parse(text,cty,forceCat){
   const out=[];let meta=null;
   text.split(/\r?\n/).forEach(raw=>{const l=raw.trim();
     if(l.startsWith("#EXTINF")){
-      const g=l.match(/group-title="([^"]*)"/);const i=l.indexOf(",");
+      const g=l.match(/group-title="([^"]*)"/);
+      const lg=l.match(/tvg-logo="([^"]*)"/);
+      const i=l.lastIndexOf(",");
       const nm=(i>=0?l.slice(i+1).trim():"")||"Channel";
-      meta={name:nm,cat:mapCat((g?g[1]:"")+" "+nm)};
-    }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty,url:l});meta=null}
+      meta={name:nm,cat:forceCat||mapCat((g?g[1]:"")+" "+nm),logo:lg?lg[1]:""};
+    }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty,url:l,logo:meta.logo});meta=null}
   });
   return out}
 
-function renderCats(){
-  $("cats").innerHTML="";
-  CATS.forEach(c=>{const b=document.createElement("button");b.className="chip"+(c===cat?" on":"");b.textContent=c;
-    b.onclick=()=>{cat=c;renderCats();render()};$("cats").appendChild(b)})}
+function match(k,c){
+  if(k==="All")return true;
+  if(k==="Favourites")return favs.includes(c.url);
+  if(k==="Bangladesh")return c.cty==="BD";
+  if(k==="India")return c.cty==="IN";
+  return c.cat===k}
+
+function renderTabs(){
+  const t=$("tabs"),sc=t.scrollLeft;t.innerHTML="";
+  KEYS.forEach(k=>{
+    const n=chans.filter(c=>match(k,c)).length;
+    const b=document.createElement("button");b.className="chip"+(k===tab?" on":"");
+    b.textContent=(k==="Favourites"?"♥ ":"")+k+" ("+n+")";
+    b.onclick=()=>{tab=k;render()};t.appendChild(b)});
+  t.scrollLeft=sc}
+
+function card(c){
+  const d=document.createElement("div");d.className="card"+(cur&&cur.url===c.url?" on":"");
+  const lg=document.createElement("div");lg.className="lg";
+  const ph=()=>{lg.innerHTML="";const p=document.createElement("div");p.className="ph";p.textContent=(c.name||"?").trim().charAt(0).toUpperCase();lg.appendChild(p)};
+  if(c.logo&&/^https?:/.test(c.logo)){
+    const im=document.createElement("img");im.loading="lazy";im.referrerPolicy="no-referrer";im.alt="";im.src=c.logo;im.onerror=ph;lg.appendChild(im);
+  }else ph();
+  const f=document.createElement("button");const isF=favs.includes(c.url);f.className="fv"+(isF?" on":"");f.textContent=isF?"♥":"♡";
+  f.onclick=e=>{e.stopPropagation();const i=favs.indexOf(c.url);if(i>-1)favs.splice(i,1);else favs.push(c.url);saveFavs();render()};
+  const n=document.createElement("div");n.className="n";n.textContent=c.name;
+  d.append(lg,f,n);
+  if(isAdmin){
+    const a=document.createElement("div");a.className="ad";
+    const e=document.createElement("button");e.className="e";e.textContent="Edit";e.onclick=ev=>{ev.stopPropagation();editCh(c)};
+    const x=document.createElement("button");x.textContent="Delete";x.onclick=async ev=>{ev.stopPropagation();if(!confirm("Muchbe?"))return;try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete hoy nai")}};
+    a.append(e,x);d.append(a);
+  }
+  d.onclick=()=>play(c);
+  return d}
 
 function render(){
-  const q=$("q").value.toLowerCase(),cy=$("cty").value,g=$("grid");g.innerHTML="";
-  const list=chans.filter(c=>(cat==="All"||c.cat===cat)&&(!cy||c.cty===cy)&&(c.name||"").toLowerCase().includes(q)&&(!onlyFav||favs.includes(c.url))&&(!httpsOnly||(c.url||"").startsWith("https://")));
-  if(!list.length){g.innerHTML='<div class="empty">No channels found.</div>';return}
-  list.forEach(c=>{
-    const d=document.createElement("div");d.className="ch"+(cur&&cur.url===c.url?" on":"");
-    const n=document.createElement("div");n.className="n";n.textContent=c.name;
-    const m=document.createElement("div");m.className="m";m.textContent=c.cat+" · "+c.cty;
-    const f=document.createElement("button");const isF=favs.includes(c.url);f.className="f"+(isF?" on":"");f.textContent=isF?"★":"☆";
-    f.onclick=e=>{e.stopPropagation();const i=favs.indexOf(c.url);if(i>-1)favs.splice(i,1);else favs.push(c.url);saveFavs();render()};
-    d.onclick=()=>play(c);
-    d.append(n,m,f);
-    if(isAdmin){const x=document.createElement("button");x.className="del";x.textContent="Delete";
-      x.onclick=async e=>{e.stopPropagation();try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete failed")}};d.append(x)}
-    g.append(d)})}
+  const q=$("q").value.toLowerCase().trim(),g=$("grid");
+  $("tot").textContent="Total Channels: "+chans.length;
+  renderTabs();
+  g.innerHTML="";
+  const list=chans.filter(c=>match(tab,c)&&(c.name||"").toLowerCase().includes(q));
+  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">Kono channel nai.</div>';return}
+  list.forEach(c=>g.appendChild(card(c)))}
+
+async function editCh(c){
+  const name=prompt("Channel-er naam",c.name);if(name===null)return;
+  const cat=prompt("Category: "+CATS.join(", "),c.cat);if(cat===null)return;
+  const cty=prompt("Country: BD ba IN",c.cty);if(cty===null)return;
+  const logo=prompt("Logo-r link (khali rakhle logo thakbe na)",c.logo||"");if(logo===null)return;
+  try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim()})}
+  catch(e){alert("Edit hoy nai")}}
 
 function play(c){
-  cur=c;const v=$("v");document.body.classList.add("playing");
+  cur=c;const v=$("v");
   $("msg").style.display="none";
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  const inApp=/AkashApp/.test(navigator.userAgent);
-  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!inApp;
-  const failMsg=httpOnly?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
-  const src=httpOnly?PROXY+"?url="+encodeURIComponent(c.url):c.url;
-  const diag=async()=>{try{const r=await fetch(src);const t=(await r.text()).replace(/\s+/g," ").slice(0,90);fail("Proxy "+r.status+": "+(t||"(empty)"))}catch(e){fail("Proxy blocked by origin check or network ("+e.message+")")}};
-  v.onerror=()=>httpOnly?diag():fail(failMsg);
+  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("Ei stream http, tai browser atkay.");render();return}
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
-    hls=new Hls();hls.loadSource(src);hls.attachMedia(v);
+    hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)httpOnly?diag():fail(failMsg)});
-  }else{v.src=src;v.play().catch(()=>{})}
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream load hocche na")});
+  }else{v.src=c.url;v.play().catch(()=>{})}
   render()}
 
-$("q").oninput=render;$("cty").onchange=render;
-$("favb").onclick=function(){onlyFav=!onlyFav;this.classList.toggle("on",onlyFav);render()};
-$("httpb").onclick=function(){httpsOnly=!httpsOnly;this.classList.toggle("on",httpsOnly);render()};
-$("adminBtn").onclick=()=>{const a=$("admin");a.style.display=a.style.display==="block"?"none":"block";if(a.style.display==="block")a.scrollIntoView({behavior:"smooth"})};
+$("q").oninput=render;
+$("sBtn").onclick=()=>{const s=$("sb");s.classList.toggle("show");if(s.classList.contains("show"))$("q").focus();else{$("q").value="";render()}};
+$("hBtn").onclick=()=>{tab="Favourites";render();window.scrollTo(0,0)};
+const toggleAdmin=()=>{const a=$("admin");a.style.display=a.style.display==="block"?"none":"block";if(a.style.display==="block")a.scrollIntoView({behavior:"smooth"})};
+$("aBtn").onclick=toggleAdmin;$("fab").onclick=toggleAdmin;
 
 $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
-  catch(e){$("lerr").textContent="Login failed ("+(e.code||e.message)+")"}};
-const gProvider=new GoogleAuthProvider();
-gProvider.setCustomParameters({prompt:"select_account"});
-$("googleLoginBtn").onclick=async()=>{
-  $("lerr").textContent="";
-  try{await signInWithPopup(auth,gProvider)}
-  catch(e){
-    if(e.code==="auth/popup-blocked"){try{await signInWithRedirect(auth,gProvider)}catch(e2){$("lerr").textContent="Google login failed ("+(e2.code||e2.message)+")"}}
-    else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"}
-  }};
-getRedirectResult(auth).catch(e=>{$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"});
+  catch(e){$("lerr").textContent="Login hoy nai ("+(e.code||e.message)+")"}};
 $("out").onclick=()=>signOut(auth);
 $("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 
 $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
-  catch(e){alert("Could not load from the link (it may be blocked by CORS). Paste the m3u text instead.")}};
-
-$("m3uFile").onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;
-  try{$("m3u").value=await f.text()}catch(er){alert("Could not read the file")}};
+  catch(e){alert("Link theke load hoy nai (CORS atkate pare). m3u text paste koro.")}};
 
 $("imp").onclick=async()=>{
-  const items=parse($("m3u").value,$("icty").value);
-  if(!items.length)return alert("No channels found in the playlist");
+  const items=parse($("m3u").value,$("icty").value,$("icat").value);
+  if(!items.length)return alert("Kono channel pawa jay nai");
   $("imp").disabled=true;
   try{
     for(let i=0;i<items.length;i+=400){
@@ -239,38 +256,16 @@ $("imp").onclick=async()=>{
       items.slice(i,i+400).forEach(c=>b.set(doc(db,"channels",hid(c.url)),c));
       await b.commit();
     }
-    $("m3u").value="";alert(items.length+" channels added");
-  }catch(e){alert("Import failed: "+(e.message||e))}
+    $("m3u").value="";alert(items.length+" ta channel add hoyeche");
+  }catch(e){alert("Add hoy nai: "+(e.message||e))}
   $("imp").disabled=false};
 
 $("clr").onclick=async()=>{
-  if(!confirm("Delete all channels?"))return;
+  if(!confirm("Sob channel muchbe?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
-  catch(e){alert("Could not delete")}};
+  catch(e){alert("Muchte parini")}};
 
-(function(){
-  const m=navigator.userAgent.match(/AkashApp\/(\d+)/);if(!m)return;const cur=+m[1];
-  fetch("https://api.github.com/repos/bayazid18ir100-web/akash-stream/releases/latest").then(r=>r.json()).then(j=>{
-    const n=parseInt(String(j.tag_name||"").replace(/\D/g,""),10);
-    const a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));
-    if(!a||!(n>cur))return;
-    const b=document.createElement("div");b.className="updbar";
-    b.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:50;background:#0e1f45;border:1px solid #22d3ee;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between";
-    const t=document.createElement("span");t.textContent="নতুন আপডেট এসেছে";
-    const u=document.createElement("button");u.className="chip on";u.textContent="আপডেট করুন";
-    u.onclick=()=>{location.href=a.browser_download_url};
-    b.append(t,u);document.body.appendChild(b);
-  }).catch(()=>{});
-})();
-
-(function(){
-  const chk=()=>{if(window.innerHeight>320)document.body.classList.remove("pip")};
-  ["resize","focus","pageshow","click","touchstart"].forEach(e=>window.addEventListener(e,chk,{passive:true}));
-  document.addEventListener("visibilitychange",chk);chk();
-})();
-
-renderCats();render();
-if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+render();
 </script>
 </body>
 </html>
