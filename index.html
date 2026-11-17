@@ -30,6 +30,7 @@ video{width:100%;height:100%;background:#000}
 .nowbar .now{flex:1;min-width:0;border:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nb{flex:none;display:flex;align-items:center;justify-content:center;width:42px;height:34px;padding:0;border-radius:10px}
 .nb svg{width:20px;height:20px}
+.sup{display:none;margin:20px 2px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
 body.pip header,body.pip .nowbar,body.pip .now,body.pip main,body.pip .fab,body.pip .sb,body.pip .updbar{display:none!important}
 body.land.playing{overflow:hidden}
 body.land.playing .top{position:fixed;inset:0;z-index:60;padding:0;background:#000}
@@ -73,7 +74,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v7</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v8</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
@@ -90,6 +91,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div class="tot" id="tot"></div>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
+<div class="sup" id="sup"></div>
 </main>
 
 <div id="admin">
@@ -554,6 +556,20 @@ $("clr").onclick=async()=>{
     u.onclick=()=>{location.href=a.browser_download_url};
     b.append(t,u);body.appendChild(b);
   }).catch(()=>{});
+})();
+
+(async()=>{
+  try{
+    const r=await fetch("config.json",{cache:"no-store"});const j=await r.json();
+    const u=String(j.support||"").trim();
+    if(!/^https:\/\/(t\.me|telegram\.me)\//i.test(u))return;
+    const el=$("sup");el.innerHTML="";
+    const t=document.createElement("div");t.textContent="💬 Customer Support";t.style.fontWeight="700";
+    const d=document.createElement("div");d.textContent="কোনো সমস্যা বা প্রশ্ন থাকলে আমাদের Telegram গ্রুপে জয়েন করুন";d.style.cssText="color:var(--mut);font-size:13px;margin:6px 0 12px";
+    const b=document.createElement("button");b.className="chip on";b.textContent="Telegram গ্রুপে জয়েন করুন";
+    b.onclick=()=>{if(INAPP)location.href=u;else window.open(u,"_blank","noopener")};
+    el.append(t,d,b);el.style.display="block";
+  }catch(e){}
 })();
 
 render();
