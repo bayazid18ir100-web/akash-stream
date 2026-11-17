@@ -45,6 +45,12 @@ button{cursor:pointer}
 textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monospace;font-size:12px}
 .empty{color:var(--mut);padding:20px 4px}
 .hide{display:none!important}
+@media (orientation:landscape) and (max-height:500px){
+body.playing{overflow:hidden}
+body.playing .stick{position:fixed;inset:0;z-index:60;padding:0;background:#000}
+body.playing .player{width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;margin:0}
+body.playing .now{display:none}
+}
 body.pip{padding:0;overflow:hidden}
 body.pip .updbar,body.pip header,body.pip .bar,body.pip .grid,body.pip .now,body.pip #admin,body.pip .msg{display:none!important}
 body.pip main{padding:0;max-width:none}
@@ -175,7 +181,7 @@ function render(){
     g.append(d)})}
 
 function play(c){
-  cur=c;const v=$("v");
+  cur=c;const v=$("v");document.body.classList.add("playing");
   $("msg").style.display="none";
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
@@ -255,6 +261,12 @@ $("clr").onclick=async()=>{
     u.onclick=()=>{location.href=a.browser_download_url};
     b.append(t,u);document.body.appendChild(b);
   }).catch(()=>{});
+})();
+
+(function(){
+  const chk=()=>{if(window.innerHeight>320)document.body.classList.remove("pip")};
+  ["resize","focus","pageshow","click","touchstart"].forEach(e=>window.addEventListener(e,chk,{passive:true}));
+  document.addEventListener("visibilitychange",chk);chk();
 })();
 
 renderCats();render();
