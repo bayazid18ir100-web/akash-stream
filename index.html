@@ -48,8 +48,13 @@ main{max-width:1100px;margin:0 auto;padding:10px 12px 90px}
 .tabs::-webkit-scrollbar{display:none}
 .chip{border-radius:14px;padding:9px 16px;font-size:14px;white-space:nowrap;flex:none}
 .chip.on{background:linear-gradient(90deg,var(--cy),#3b82f6);color:#04122b;border-color:transparent;font-weight:700}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 8px}
-@media(min-width:700px){.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,4),1fr);gap:10px 8px}
+@media(min-width:700px){body:not(.cs) .grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+body.light{--bg:#f1f5fb;--card:#fff;--line:#cdd8ea;--tx:#0b1b3a;--mut:#5a6f94;--cy:#0891b2}
+.card.sel .lg{border:2px solid var(--or);box-shadow:0 0 0 2px rgba(255,159,67,.35)}
+.mv{display:flex;gap:10px;justify-content:center}.mv button{padding:2px 12px;font-size:13px}
+#cloud{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:var(--mut);margin:0 0 10px}
+#modeBar{align-items:center;background:var(--card);border:1px solid var(--or);border-radius:12px;padding:8px;font-size:13px}
 .card{cursor:pointer;position:relative;text-align:center;min-width:0}
 .lg{background:var(--card);border:1px solid var(--line);border-radius:14px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .card.on .lg{border:2px solid var(--cy);box-shadow:0 0 0 2px rgba(34,211,238,.3)}
@@ -74,13 +79,16 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v9</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v10</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
+<button class="ib" id="tBtn" aria-label="Theme">☀️</button>
+<button class="ib" id="gBtn" aria-label="Grid size">▦</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
 <div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
 <div class="nowbar"><div class="now" id="now">Nothing is playing</div>
+<button class="nb" id="repBtn" aria-label="Report broken channel">⚠️</button>
 <button class="nb" id="prevBtn" aria-label="Previous channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg></button>
 <button class="nb" id="nextBtn" aria-label="Next channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
 </div>
@@ -89,6 +97,10 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 
 <main>
 <div class="tot" id="tot"></div>
+<div class="bar hide" id="modeBar"><span id="selInfo"></span>
+<span class="selOnly bar" style="margin:0"><button id="selAll">Select all</button><select id="bcat"></select><button id="bMove">Change category</button><button id="bDel">Delete</button></span>
+<button id="bDone">Done</button></div>
+<div id="cloud" class="hide"></div>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
 <div class="sup" id="sup"></div>
@@ -108,7 +120,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;https://...png&quot; group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
 <div class="bar">
 <select id="icty"><option value="AUTO">Country: Auto-detect</option><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
-<select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option></select>
+<select id="icat"><option value="">Category: Auto</option><option>Sports</option><option>News</option><option>Entertainment</option><option>Kids</option><option>Movies</option><option>Music</option><option>Religious</option><option>Documentary</option><option>Education</option><option>Lifestyle</option></select>
 </div>
 <div class="bar">
 <button id="logoBtn">Auto-fill missing logos</button><button id="ctyBtn">Auto-detect country</button><button id="scanBtn">Check &amp; remove dead channels</button><button id="catBtn">Auto-categorize</button><span id="logoMsg" style="color:var(--mut);font-size:12px;align-self:center"></span>
@@ -122,6 +134,10 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <button id="clr">Delete all channels</button>
 <button id="out">Logout</button>
 </div>
+<h3 style="margin-top:14px">Manage</h3>
+<div class="bar"><button id="dupBtn">Remove duplicates</button><button id="expBtn">Export .m3u</button><button id="selBtn">Select multiple</button><button id="sortBtn">Reorder</button></div>
+<h3 style="margin-top:14px">Broken channel reports</h3>
+<div id="reps" class="empty" style="padding:4px 0">No reports.</div>
 <p style="color:var(--mut);font-size:12px;margin:6px 0 0">If the playlist has tvg-logo, logos are added automatically. To change a channel's logo, category or country, tap Edit under the channel.</p>
 </div>
 </div>
@@ -130,7 +146,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc,setDoc,getDoc,increment} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig={
@@ -146,26 +162,30 @@ const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 // Paste your Cloudflare Worker address here (no trailing slash). Example: "https://akash-proxy.yourname.workers.dev"
 const PROXY="https://akashproxy.bayazid18ir100.workers.dev";
 const INAPP=/AkashApp/.test(navigator.userAgent);
-const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
-const KEYS=["HTTPS only","Bangladesh","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","All"];
-const LABELS={"HTTPS only":"শুধু HTTPS","Bangladesh":"বাংলাদেশ","Favourites":"পছন্দের","Sports":"খেলাধুলা","India":"ভারত","News":"সংবাদ","Entertainment":"বিনোদন","Kids":"শিশুদের","Movies":"সিনেমা","Music":"গান","All":"সব"};
+const CATS=["Sports","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle"];
+const KEYS=["HTTPS only","Bangladesh","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle","All"];
+const LABELS={"HTTPS only":"শুধু HTTPS","Bangladesh":"বাংলাদেশ","Favourites":"পছন্দের","Sports":"খেলাধুলা","India":"ভারত","News":"সংবাদ","Entertainment":"বিনোদন","Kids":"শিশুদের","Movies":"সিনেমা","Music":"গান","Religious":"ধর্মীয়","Documentary":"ডকুমেন্টারি","Education":"শিক্ষা","Lifestyle":"লাইফস্টাইল","All":"সব"};
 const $=i=>document.getElementById(i);
-let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null;
+let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null,user=null,mode=null,sel=new Set(),reps=[],repUnsub=null,cols=0,light=false;
 const baseName=n=>String(n||"").replace(/\s*[\[(]\s*backup\s*\d*\s*[\])]/ig,"").replace(/\s+/g," ").trim().toLowerCase();
 const lastKey="as_last";
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
-const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}};
+const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}if(user)setDoc(doc(db,"users",user.uid),{favs},{merge:true}).catch(()=>{})};
 
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
-  chans=s.docs.map(d=>({id:d.id,...d.data()}));render();offerContinue();
+  chans=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>((a.ord??1e9)-(b.ord??1e9))||String(a.name).localeCompare(String(b.name)));render();offerContinue();
 },()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your internet and Firestore rules.</div>'});
 
 onAuthStateChanged(auth,u=>{
+  user=u;
   isAdmin=!!u&&(u.email||"").toLowerCase()===ADMIN_EMAIL;
-  if(u&&!isAdmin){$("lerr").textContent="This account does not have admin access";signOut(auth)}
+  if(u)syncFavs();
+  if(isAdmin&&!repUnsub)repUnsub=onSnapshot(collection(db,"reports"),s=>{reps=s.docs.map(d=>({id:d.id,...d.data()}));renderReps()},()=>{});
+  if(!isAdmin&&repUnsub){repUnsub();repUnsub=null;reps=[];renderReps()}
+  if(!isAdmin&&mode)setMode(mode);
   $("loginBox").classList.toggle("hide",isAdmin);
   $("panel").classList.toggle("hide",!isAdmin);
   $("fab").classList.toggle("show",isAdmin);
@@ -178,6 +198,10 @@ function mapCat(g){g=(g||"").toLowerCase();
   if(/kid|cartoon|pogo|nick|disney|duronto|hungama|sonic|baby|toon|animation|শিশু/.test(g))return"Kids";
   if(/movie|film|cinema|cineplex|hbo|b4u movies|star movies|zee cinema|&pictures|sony max|colors cineplex|\bmax\b|সিনেমা/.test(g))return"Movies";
   if(/music|gaan|\bmtv\b|9xm|zing|mastiii|sangeet|b4u music|vh1|song|গান/.test(g))return"Music";
+  if(/islam|quran|makkah|madina|peace ?tv|religio|bhakti|aastha|sanskar|dharm|church|gospel|ইসলাম|ধর্ম|কুরআন/.test(g))return"Religious";
+  if(/documentary|discovery|nat ?geo|national geographic|history|animal planet|science|\bdocu/.test(g))return"Documentary";
+  if(/educat|\bedu\b|learn|school|swayam|ncert|study|শিক্ষা/.test(g))return"Education";
+  if(/lifestyle|fashion|food|cook|travel|living|health|beauty|recipe|লাইফস্টাইল/.test(g))return"Lifestyle";
   return"Entertainment"}
 function hid(t){let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return"c"+h.toString(36)}
 function detectCty(name,group,tvgid){
@@ -197,10 +221,10 @@ function parse(text,cty,forceCat){
     if(l.startsWith("#EXTINF")){
       const g=l.match(/group-title="([^"]*)"/);
       const lg=l.match(/tvg-logo="([^"]*)"/);
-      const tid=l.match(/tvg-id="([^"]*)"/);
+      const tid=l.match(/tvg-id="([^"]*)"/);const tc=l.match(/tvg-country="([^"]*)"/);
       const i=l.lastIndexOf(",");
       const nm=(i>=0?l.slice(i+1).trim():"")||"Channel";
-      meta={name:nm,cat:forceCat||mapCat((g?g[1]:"")+" "+nm),logo:lg?lg[1]:"",cty:detectCty(nm,g?g[1]:"",tid?tid[1]:"")};
+      meta={name:nm,cat:forceCat||mapCat((g?g[1]:"")+" "+nm),logo:lg?lg[1]:"",cty:detectCty(nm,g?g[1]:"",tid?tid[1]:"")||(tc&&/^(BD|IN)$/i.test(tc[1])?tc[1].toUpperCase():null)};
     }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty:cty==="AUTO"?meta.cty:cty,url:l,logo:meta.logo});meta=null}
   });
   return out}
@@ -223,7 +247,7 @@ function renderTabs(){
   t.scrollLeft=sc}
 
 function card(c){
-  const d=document.createElement("div");d.className="card"+(cur&&cur.url===c.url?" on":"");
+  const d=document.createElement("div");d.className="card"+(cur&&cur.url===c.url?" on":"")+(sel.has(c.id)?" sel":"");
   const lg=document.createElement("div");lg.className="lg";
   const ph=()=>{lg.innerHTML="";const p=document.createElement("div");p.className="ph";p.textContent=(c.name||"?").trim().charAt(0).toUpperCase();lg.appendChild(p)};
   if(c.logo&&/^https?:/.test(c.logo)){
@@ -239,7 +263,16 @@ function card(c){
     const x=document.createElement("button");x.textContent="Delete";x.onclick=async ev=>{ev.stopPropagation();if(!confirm("Delete this channel?"))return;try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete failed")}};
     a.append(e,x);d.append(a);
   }
-  d.onclick=()=>play(c);
+  const m=isAdmin?mode:null;
+  if(m==="sort"){
+    const mv=document.createElement("div");mv.className="mv";
+    [["◀",-1],["▶",1]].forEach(([t,dir])=>{const b=document.createElement("button");b.textContent=t;b.onclick=ev=>{ev.stopPropagation();moveCh(c,dir)};mv.appendChild(b)});
+    d.append(mv);d.draggable=true;
+    d.ondragstart=ev=>{ev.dataTransfer.setData("text/plain",c.id)};
+    d.ondragover=ev=>ev.preventDefault();
+    d.ondrop=ev=>{ev.preventDefault();const a=ev.dataTransfer.getData("text/plain");if(a&&a!==c.id)reorder(a,c.id)};
+  }
+  d.onclick=()=>{if(m==="select"){if(sel.has(c.id))sel.delete(c.id);else sel.add(c.id);updBar();render()}else if(m!=="sort")play(c)};
   return d}
 
 function visible(){
@@ -249,7 +282,7 @@ function visible(){
 function render(){
   const g=$("grid");
   $("tot").textContent="মোট চ্যানেল: "+chans.length;
-  renderTabs();
+  renderTabs();renderCloud();
   g.innerHTML="";
   const list=visible();
   if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">কোনো চ্যানেল পাওয়া যায়নি।</div>';return}
@@ -260,7 +293,7 @@ async function editCh(c){
   const cat=prompt("Category: "+CATS.join(", "),c.cat);if(cat===null)return;
   const cty=prompt("Country: BD or IN",c.cty);if(cty===null)return;
   const logo=prompt("Logo link (leave empty for no logo)",c.logo||"");if(logo===null)return;
-  try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim()})}
+  try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim(),...(c.ord!=null?{ord:c.ord}:{})})}
   catch(e){alert("Edit failed")}}
 
 function toast(t){
@@ -451,6 +484,109 @@ $("catBtn").onclick=async()=>{
     st.textContent="Done: category set for "+ch.length+" channels (only 'Entertainment' ones were rechecked).";
   }catch(e){st.textContent="Failed: "+(e.message||e)}
   btn.disabled=false};
+
+// ===== Theme / grid size =====
+try{light=localStorage.getItem("as_theme")==="light";cols=+localStorage.getItem("as_cols")||0}catch(e){}
+const applyTheme=()=>{document.body.classList.toggle("light",light);document.querySelector('meta[name=theme-color]').content=light?"#f1f5fb":"#07122b";$("tBtn").textContent=light?"🌙":"☀️"};
+const applyCols=()=>{if(cols){document.body.classList.add("cs");document.documentElement.style.setProperty("--cols",cols)}};
+$("tBtn").onclick=()=>{light=!light;try{localStorage.setItem("as_theme",light?"light":"dark")}catch(e){}applyTheme()};
+$("gBtn").onclick=()=>{cols=({3:4,4:5,5:3})[cols||4];try{localStorage.setItem("as_cols",cols)}catch(e){}applyCols();toast(cols+" কলাম")};
+applyTheme();applyCols();
+
+// ===== Cloud favourites =====
+async function syncFavs(){
+  if(!user)return;
+  try{const r=await getDoc(doc(db,"users",user.uid));const cl=r.exists()?(r.data().favs||[]):[];
+    const m=Array.from(new Set(cl.concat(favs)));favs=m;
+    try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}
+    if(m.length!==cl.length)await setDoc(doc(db,"users",user.uid),{favs:m},{merge:true});
+    render()}catch(e){toast("Cloud sync failed")}}
+function renderCloud(){
+  const e=$("cloud");e.classList.toggle("hide",tab!=="Favourites");e.innerHTML="";
+  if(tab!=="Favourites")return;
+  const t=document.createElement("span"),b=document.createElement("button");b.className="chip on";
+  if(user){t.textContent="☁️ ক্লাউডে সেভ হচ্ছে ("+(user.email||"")+")";b.textContent="Logout";b.onclick=()=>signOut(auth)}
+  else{t.textContent="☁️ লগইন করলে পছন্দের চ্যানেল ক্লাউডে সেভ থাকবে";b.textContent="Google লগইন";b.onclick=()=>$("googleLoginBtn").click()}
+  e.append(t,b)}
+
+// ===== Report broken channel (any user) =====
+$("repBtn").onclick=async()=>{
+  if(!cur)return toast("আগে একটি চ্যানেল চালান");
+  let done=[];try{done=JSON.parse(localStorage.getItem("as_rep")||"[]")}catch(e){}
+  if(done.includes(cur.url))return toast("এই চ্যানেল আপনি আগেই রিপোর্ট করেছেন");
+  try{await setDoc(doc(db,"reports",hid(cur.url)),{name:cur.name,url:cur.url,count:increment(1),last:Date.now()},{merge:true});
+    done.push(cur.url);try{localStorage.setItem("as_rep",JSON.stringify(done.slice(-300)))}catch(e){}
+    toast("রিপোর্ট পাঠানো হয়েছে, ধন্যবাদ")}catch(e){toast("রিপোর্ট পাঠানো যায়নি")}};
+function renderReps(){
+  const e=$("reps");e.innerHTML="";
+  if(!reps.length){e.textContent="No reports.";return}
+  const mk=(t,f)=>{const b=document.createElement("button");b.textContent=t;b.onclick=f;return b};
+  reps.slice().sort((a,b)=>(b.count||0)-(a.count||0)).forEach(r=>{
+    const row=document.createElement("div");row.className="bar";row.style.alignItems="center";
+    const t=document.createElement("span");t.style.cssText="flex:1;min-width:140px;color:var(--tx)";t.textContent=(r.name||"?")+" - "+(r.count||1)+" reports";
+    row.appendChild(t);
+    const ch=chans.find(c=>c.url===r.url);
+    if(ch){row.appendChild(mk("Play",()=>{play(ch);window.scrollTo(0,0)}));
+      row.appendChild(mk("Delete channel",async()=>{if(!confirm("Delete \""+ch.name+"\"?"))return;try{await deleteDoc(doc(db,"channels",ch.id));await deleteDoc(doc(db,"reports",r.id))}catch(er){alert("Delete failed")}}))}
+    row.appendChild(mk("Dismiss",()=>deleteDoc(doc(db,"reports",r.id)).catch(()=>alert("Failed"))));
+    e.appendChild(row)})}
+
+// ===== Admin: duplicates, export, select, reorder =====
+async function delMany(list){
+  for(let i=0;i<list.length;i+=400){const w=writeBatch(db);list.slice(i,i+400).forEach(c=>w.delete(doc(db,"channels",c.id)));await w.commit()}}
+function dups(arr,keyFn){
+  const m=new Map();arr.forEach(c=>{const k=keyFn(c);if(!k)return;if(!m.has(k))m.set(k,[]);m.get(k).push(c)});
+  const del=[];m.forEach(g=>{if(g.length>1){const keep=g.slice().sort((a,b)=>(!!b.logo-!!a.logo))[0];g.forEach(c=>{if(c!==keep)del.push(c)})}});
+  return del}
+$("dupBtn").onclick=async()=>{
+  const st=$("logoMsg");
+  try{
+    const u=dups(chans,c=>String(c.url||"").trim().toLowerCase().replace(/\/+$/,""));
+    let n=0;
+    if(u.length&&confirm(u.length+" channels have the same URL as another one. Keep one of each and delete the rest?")){await delMany(u);n+=u.length}
+    const left=chans.filter(c=>!u.includes(c));
+    const d=dups(left,c=>(c.name||"").trim().toLowerCase());
+    if(d.length&&confirm(d.length+" channels have exactly the same name (different URL).\n\nWARNING: these may be backup links used for auto-switching. Delete them too?")){await delMany(d);n+=d.length}
+    alert(n?n+" duplicate channels deleted":"No duplicates deleted")
+  }catch(e){alert("Failed: "+(e.message||e))}};
+$("expBtn").onclick=()=>{
+  const q=s=>String(s||"").replace(/"/g,"'").replace(/[\r\n]+/g," ");
+  const t="#EXTM3U\n"+chans.map(c=>'#EXTINF:-1 tvg-logo="'+q(c.logo)+'" tvg-country="'+q(c.cty)+'" group-title="'+q(c.cat)+'",'+q(c.name)+"\n"+c.url).join("\n")+"\n";
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"audio/x-mpegurl"}));
+  a.download="akash-stream-"+new Date().toISOString().slice(0,10)+".m3u";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);$("logoMsg").textContent="Exported "+chans.length+" channels."};
+function updBar(){
+  $("selInfo").textContent=mode==="select"?sel.size+" selected":"Reorder: tap ◀ ▶ (or drag on a computer)";
+  document.querySelectorAll(".selOnly").forEach(e=>e.classList.toggle("hide",mode!=="select"))}
+function setMode(m){
+  mode=mode===m?null:m;sel.clear();
+  $("modeBar").classList.toggle("hide",!mode);updBar();render();
+  if(mode){$("admin").style.display="none";window.scrollTo(0,0)}}
+$("selBtn").onclick=()=>setMode("select");
+$("sortBtn").onclick=()=>setMode("sort");
+$("bDone").onclick=()=>setMode(mode);
+$("bcat").innerHTML=CATS.map(c=>"<option>"+c+"</option>").join("");
+$("selAll").onclick=()=>{visible().forEach(c=>sel.add(c.id));updBar();render()};
+$("bMove").onclick=async()=>{
+  if(!sel.size)return toast("কিছু সিলেক্ট করুন");
+  const cat=$("bcat").value,ids=Array.from(sel);
+  try{for(let i=0;i<ids.length;i+=400){const w=writeBatch(db);ids.slice(i,i+400).forEach(id=>w.update(doc(db,"channels",id),{cat}));await w.commit()}
+    toast(ids.length+" channels → "+cat);sel.clear();updBar()}catch(e){alert("Failed: "+(e.message||e))}};
+$("bDel").onclick=async()=>{
+  if(!sel.size)return toast("কিছু সিলেক্ট করুন");
+  if(!confirm("Delete "+sel.size+" selected channels?"))return;
+  try{await delMany(chans.filter(c=>sel.has(c.id)));sel.clear();updBar()}catch(e){alert("Failed: "+(e.message||e))}};
+async function reorder(a,b){
+  const arr=chans.slice(),i=arr.findIndex(x=>x.id===a),j=arr.findIndex(x=>x.id===b);
+  if(i<0||j<0)return;
+  const [m]=arr.splice(i,1);arr.splice(j,0,m);
+  const ch=[];arr.forEach((x,k)=>{if(x.ord!==k)ch.push({id:x.id,ord:k})});
+  try{for(let k=0;k<ch.length;k+=400){const w=writeBatch(db);ch.slice(k,k+400).forEach(f=>w.update(doc(db,"channels",f.id),{ord:f.ord}));await w.commit()}}
+  catch(e){alert("Reorder failed: "+(e.message||e))}}
+function moveCh(c,dir){
+  const v=visible(),i=v.findIndex(x=>x.id===c.id),j=i+dir;
+  if(i<0||j<0||j>=v.length)return;
+  reorder(c.id,v[j].id)}
 
 // ===== Check streams and remove channels that cannot load =====
 async function checkStream(c,ms){
