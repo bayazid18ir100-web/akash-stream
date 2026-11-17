@@ -74,7 +74,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v8</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v9</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
@@ -143,7 +143,8 @@ const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 const PROXY="https://akashproxy.bayazid18ir100.workers.dev";
 const INAPP=/AkashApp/.test(navigator.userAgent);
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
-const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music","HTTPS only"];
+const KEYS=["HTTPS only","Bangladesh","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","All"];
+const LABELS={"HTTPS only":"শুধু HTTPS","Bangladesh":"বাংলাদেশ","Favourites":"পছন্দের","Sports":"খেলাধুলা","India":"ভারত","News":"সংবাদ","Entertainment":"বিনোদন","Kids":"শিশুদের","Movies":"সিনেমা","Music":"গান","All":"সব"};
 const $=i=>document.getElementById(i);
 let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null;
 const baseName=n=>String(n||"").replace(/\s*[\[(]\s*backup\s*\d*\s*[\])]/ig,"").replace(/\s+/g," ").trim().toLowerCase();
@@ -213,7 +214,7 @@ function renderTabs(){
   KEYS.forEach(k=>{
     const n=chans.filter(c=>match(k,c)).length;
     const b=document.createElement("button");b.className="chip"+(k===tab?" on":"");
-    b.textContent=(k==="Favourites"?"♥ ":"")+k+" ("+n+")";
+    b.textContent=(k==="Favourites"?"♥ ":"")+(LABELS[k]||k)+" ("+n+")";
     b.onclick=()=>{tab=k;render()};t.appendChild(b)});
   t.scrollLeft=sc}
 
@@ -243,11 +244,11 @@ function visible(){
 
 function render(){
   const g=$("grid");
-  $("tot").textContent="Total Channels: "+chans.length;
+  $("tot").textContent="মোট চ্যানেল: "+chans.length;
   renderTabs();
   g.innerHTML="";
   const list=visible();
-  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">No channels found.</div>';return}
+  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">কোনো চ্যানেল পাওয়া যায়নি।</div>';return}
   list.forEach(c=>g.appendChild(card(c)))}
 
 async function editCh(c){
