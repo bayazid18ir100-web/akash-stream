@@ -63,6 +63,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div id="loginBox">
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
+<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="min-width:0;flex:none"> Password dekhao</label>
 <button id="loginBtn">Login</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
@@ -177,8 +178,9 @@ $("adminBtn").onclick=()=>{const a=$("admin");a.style.display=a.style.display===
 $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
-  catch(e){$("lerr").textContent="Login hoy nai: email/password check koro"}};
+  catch(e){$("lerr").textContent="Login hoy nai ("+(e.code||e.message)+")"}};
 $("out").onclick=()=>signOut(auth);
+$("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 
 $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
