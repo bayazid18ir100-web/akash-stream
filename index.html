@@ -163,10 +163,10 @@ const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 const PROXY="https://akashproxy.bayazid18ir100.workers.dev";
 const INAPP=/AkashApp/.test(navigator.userAgent);
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle"];
-const KEYS=["HTTPS only","Bangladesh","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle","All"];
+const KEYS=["Bangladesh","HTTPS only","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle","All"];
 const LABELS={"HTTPS only":"শুধু HTTPS","Bangladesh":"বাংলাদেশ","Favourites":"পছন্দের","Sports":"খেলাধুলা","India":"ভারত","News":"সংবাদ","Entertainment":"বিনোদন","Kids":"শিশুদের","Movies":"সিনেমা","Music":"গান","Religious":"ধর্মীয়","Documentary":"ডকুমেন্টারি","Education":"শিক্ষা","Lifestyle":"লাইফস্টাইল","All":"সব"};
 const $=i=>document.getElementById(i);
-let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null,user=null,mode=null,sel=new Set(),reps=[],repUnsub=null,cols=0,light=false;
+let chans=[],favs=[],tab="Bangladesh",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null,user=null,mode=null,sel=new Set(),reps=[],repUnsub=null,cols=0,light=false;
 const baseName=n=>String(n||"").replace(/\s*[\[(]\s*backup\s*\d*\s*[\])]/ig,"").replace(/\s+/g," ").trim().toLowerCase();
 const lastKey="as_last";
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
