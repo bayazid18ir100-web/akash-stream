@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -51,12 +51,12 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 </header>
 <main>
 <div class="stick">
-<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg">Ekta channel select koro</div></div>
-<div class="now" id="now">Kichu play hocche na</div>
+<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg">Select a channel</div></div>
+<div class="now" id="now">Nothing is playing</div>
 </div>
 <div class="bar" id="cats"></div>
 <div class="bar">
-<input id="q" name="channel-search" placeholder="Channel khojo..." autocomplete="off">
+<input id="q" name="channel-search" placeholder="Search channels..." autocomplete="off">
 <select id="cty"><option value="">BD + IN</option><option value="BD">Bangladesh</option><option value="IN">India</option></select>
 <button id="favb" class="chip">★ Favorites</button>
 </div>
@@ -66,8 +66,8 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div id="loginBox">
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
-<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="min-width:0;flex:none"> Password dekhao</label>
-<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Google diye Login</button> <span id="lerr" style="color:#ff6b6b"></span>
+<label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="min-width:0;flex:none"> Show password</label>
+<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Login with Google</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
@@ -77,7 +77,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div class="bar">
 <select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
 <button id="imp">Import</button>
-<button id="clr">Sob channel muchbe</button>
+<button id="clr">Delete all channels</button>
 <button id="out">Logout</button>
 </div>
 </div>
@@ -113,11 +113,11 @@ const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
   chans=s.docs.map(d=>({id:d.id,...d.data()}));render();
-},()=>{$("grid").innerHTML='<div class="empty">Channel list load hoy nai. Firebase config ar rules check koro.</div>'});
+},()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your Firebase config and rules.</div>'});
 
 onAuthStateChanged(auth,u=>{
   isAdmin=!!u&&(u.email||"").toLowerCase()===ADMIN_EMAIL;
-  if(u&&!isAdmin){$("lerr").textContent="Ei account-er admin access nai";signOut(auth)}
+  if(u&&!isAdmin){$("lerr").textContent="This account does not have admin access";signOut(auth)}
   $("loginBox").classList.toggle("hide",isAdmin);
   $("panel").classList.toggle("hide",!isAdmin);
   render();
@@ -150,7 +150,7 @@ function renderCats(){
 function render(){
   const q=$("q").value.toLowerCase(),cy=$("cty").value,g=$("grid");g.innerHTML="";
   const list=chans.filter(c=>(cat==="All"||c.cat===cat)&&(!cy||c.cty===cy)&&(c.name||"").toLowerCase().includes(q)&&(!onlyFav||favs.includes(c.url)));
-  if(!list.length){g.innerHTML='<div class="empty">Kono channel nai.</div>';return}
+  if(!list.length){g.innerHTML='<div class="empty">No channels found.</div>';return}
   list.forEach(c=>{
     const d=document.createElement("div");d.className="ch"+(cur&&cur.url===c.url?" on":"");
     const n=document.createElement("div");n.className="n";n.textContent=c.name;
@@ -160,7 +160,7 @@ function render(){
     d.onclick=()=>play(c);
     d.append(n,m,f);
     if(isAdmin){const x=document.createElement("button");x.className="del";x.textContent="Delete";
-      x.onclick=async e=>{e.stopPropagation();try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete hoy nai")}};d.append(x)}
+      x.onclick=async e=>{e.stopPropagation();try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete failed")}};d.append(x)}
     g.append(d)})}
 
 function play(c){
@@ -169,11 +169,11 @@ function play(c){
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("Ei stream http, tai https site-e browser atkay. Native app-e cholbe.");render();return}
+  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("This stream uses http, which browsers block on https sites.");render();return}
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
     hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream load hocche na")});
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream failed to load")});
   }else{v.src=c.url;v.play().catch(()=>{})}
   render()}
 
@@ -184,31 +184,31 @@ $("adminBtn").onclick=()=>{const a=$("admin");a.style.display=a.style.display===
 $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
-  catch(e){$("lerr").textContent="Login hoy nai ("+(e.code||e.message)+")"}};
+  catch(e){$("lerr").textContent="Login failed ("+(e.code||e.message)+")"}};
 const gProvider=new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:"select_account"});
 $("googleLoginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithPopup(auth,gProvider)}
   catch(e){
-    if(e.code==="auth/popup-blocked"){try{await signInWithRedirect(auth,gProvider)}catch(e2){$("lerr").textContent="Google login hoy nai ("+(e2.code||e2.message)+")"}}
-    else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){$("lerr").textContent="Google login hoy nai ("+(e.code||e.message)+")"}
+    if(e.code==="auth/popup-blocked"){try{await signInWithRedirect(auth,gProvider)}catch(e2){$("lerr").textContent="Google login failed ("+(e2.code||e2.message)+")"}}
+    else if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"}
   }};
-getRedirectResult(auth).catch(e=>{$("lerr").textContent="Google login hoy nai ("+(e.code||e.message)+")"});
+getRedirectResult(auth).catch(e=>{$("lerr").textContent="Google login failed ("+(e.code||e.message)+")"});
 $("out").onclick=()=>signOut(auth);
 $("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 
 $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
-  catch(e){alert("Link theke load hoy nai (CORS atkate pare). m3u text paste koro.")}};
+  catch(e){alert("Could not load from the link (it may be blocked by CORS). Paste the m3u text instead.")}};
 
 $("m3uFile").onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
-  try{$("m3u").value=await f.text()}catch(er){alert("File pora jay nai")}};
+  try{$("m3u").value=await f.text()}catch(er){alert("Could not read the file")}};
 
 $("imp").onclick=async()=>{
   const items=parse($("m3u").value,$("icty").value);
-  if(!items.length)return alert("Kono channel pawa jay nai");
+  if(!items.length)return alert("No channels found in the playlist");
   $("imp").disabled=true;
   try{
     for(let i=0;i<items.length;i+=400){
@@ -216,14 +216,14 @@ $("imp").onclick=async()=>{
       items.slice(i,i+400).forEach(c=>b.set(doc(db,"channels",hid(c.url)),c));
       await b.commit();
     }
-    $("m3u").value="";alert(items.length+" ta channel add hoyeche");
-  }catch(e){alert("Add hoy nai: "+(e.message||e))}
+    $("m3u").value="";alert(items.length+" channels added");
+  }catch(e){alert("Import failed: "+(e.message||e))}
   $("imp").disabled=false};
 
 $("clr").onclick=async()=>{
-  if(!confirm("Sob channel muchbe?"))return;
+  if(!confirm("Delete all channels?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
-  catch(e){alert("Muchte parini")}};
+  catch(e){alert("Could not delete")}};
 
 renderCats();render();
 </script>
