@@ -73,7 +73,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v5</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v7</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
@@ -97,7 +97,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <h3>Admin Login</h3>
 <div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
 <label style="display:block;margin:6px 0;font-size:13px;color:var(--mut)"><input type="checkbox" id="showpw" style="flex:none"> Show password</label>
-<button id="loginBtn">Login</button> <button id="googleLoginBtn" type="button">Login with Google</button> <span id="lerr" style="color:#ff6b6b"></span>
+<button id="loginBtn">Login</button> <button id="forgotBtn" type="button">Set / reset password</button> <button id="googleLoginBtn" type="button">Login with Google</button> <span id="lerr" style="color:#ff6b6b"></span>
 </div>
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
@@ -125,7 +125,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc,setDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-3OY8",
@@ -143,7 +143,9 @@ const INAPP=/AkashApp/.test(navigator.userAgent);
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music"];
 const KEYS=["All","Favourites","Sports","Bangladesh","India","News","Entertainment","Kids","Movies","Music","HTTPS only"];
 const $=i=>document.getElementById(i);
-let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false;
+let chans=[],favs=[],tab="All",cur=null,hls=null,isAdmin=false,tried=new Set(),stallTimer=null,wake=null;
+const baseName=n=>String(n||"").replace(/\s*[\[(]\s*backup\s*\d*\s*[\])]/ig,"").replace(/\s+/g," ").trim().toLowerCase();
+const lastKey="as_last";
 try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}};
 
@@ -151,7 +153,7 @@ const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
-  chans=s.docs.map(d=>({id:d.id,...d.data()}));render();
+  chans=s.docs.map(d=>({id:d.id,...d.data()}));render();offerContinue();
 },()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your internet and Firestore rules.</div>'});
 
 onAuthStateChanged(auth,u=>{
@@ -254,12 +256,38 @@ async function editCh(c){
   try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim()})}
   catch(e){alert("Edit failed")}}
 
-function play(c){
+function toast(t){
+  let d=document.getElementById("toast");
+  if(!d){d=document.createElement("div");d.id="toast";d.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:#0e1f45;border:1px solid #22d3ee;color:#eaf2ff;padding:10px 16px;border-radius:12px;z-index:80;font-size:13px;max-width:86vw;text-align:center";document.body.appendChild(d)}
+  d.textContent=t;d.style.display="block";clearTimeout(d._t);d._t=setTimeout(()=>{d.style.display="none"},3500)}
+async function requestWake(){
+  try{if("wakeLock" in navigator&&!wake){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>{wake=null})}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&cur&&!$("v").paused)requestWake()});
+function offerContinue(){
+  if(cur||document.getElementById("contBtn"))return;
+  let u=null;try{u=localStorage.getItem(lastKey)}catch(e){}
+  const c=u&&chans.find(x=>x.url===u);if(!c)return;
+  const b=document.createElement("button");b.id="contBtn";b.className="chip on";b.style.cssText="pointer-events:auto;margin-top:6px";
+  b.textContent="▶ Continue: "+c.name;b.onclick=()=>play(c);
+  $("msg").appendChild(b)}
+function play(c,auto){
+  if(!auto)tried=new Set();
+  tried.add(c.url);
+  try{localStorage.setItem(lastKey,c.url)}catch(e){}
+  clearTimeout(stallTimer);
   cur=c;const v=$("v");document.body.classList.add("playing");
   $("msg").style.display="none";
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
-  const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
+  let failed=false;
+  const fail=t=>{
+    if(failed||cur!==c)return;failed=true;clearTimeout(stallTimer);
+    const alt=chans.find(x=>baseName(x.name)===baseName(c.name)&&!tried.has(x.url));
+    if(alt){toast("Switching to backup: "+alt.name);play(alt,true);return}
+    $("msg").style.display="flex";$("msg").textContent=t};
+  const ok=()=>{clearTimeout(stallTimer);requestWake()};
+  v.onplaying=ok;v.onloadeddata=ok;
+  stallTimer=setTimeout(()=>{if(v.readyState<2)fail("Stream is not responding")},15000);
   const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!INAPP;
   const playUrl=(httpOnly&&PROXY)?PROXY+"/?url="+encodeURIComponent(c.url):c.url;
   const failMsg=(httpOnly&&!PROXY)?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
@@ -291,7 +319,22 @@ $("aBtn").onclick=toggleAdmin;$("fab").onclick=toggleAdmin;
 $("loginBtn").onclick=async()=>{
   $("lerr").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
-  catch(e){$("lerr").textContent="Login failed ("+(e.code||e.message)+")"}};
+  catch(e){
+    const hint={
+      "auth/invalid-credential":"Wrong email or password, or this email has no password yet. Tap 'Set / reset password'.",
+      "auth/wrong-password":"Wrong password. Tap 'Set / reset password'.",
+      "auth/user-not-found":"No password account for this email. Tap 'Set / reset password'.",
+      "auth/operation-not-allowed":"Email/Password sign-in is turned off in Firebase (Authentication > Sign-in method).",
+      "auth/network-request-failed":"Network problem. Check your internet.",
+      "auth/too-many-requests":"Too many attempts. Wait a few minutes.",
+      "auth/unauthorized-domain":"This domain is not authorised in Firebase (Authentication > Settings > Authorized domains)."
+    }[e.code]||"";
+    $("lerr").textContent="Login failed ("+(e.code||e.message)+") "+hint}};
+$("forgotBtn").onclick=async()=>{
+  const em=$("em").value.trim();
+  if(!em){$("lerr").textContent="Type your email first, then tap this button.";return}
+  try{await sendPasswordResetEmail(auth,em);$("lerr").style.color="#4ade80";$("lerr").textContent="Reset email sent to "+em+". Open it, set a password, then log in.";setTimeout(()=>{$("lerr").style.color="#ff6b6b"},8000)}
+  catch(e){$("lerr").style.color="#ff6b6b";$("lerr").textContent="Could not send email ("+(e.code||e.message)+")"}};
 const gProvider=new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:"select_account"});
 $("googleLoginBtn").onclick=async()=>{
