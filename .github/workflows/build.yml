@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +30,9 @@ jobs:
             [ -f "$f" ] && cp "$f" www/ || true
           done
           rm -f www/manifest.json
+
+      - name: Set app version
+        run: sed -i "s|AkashApp/1|AkashApp/${{ github.run_number }}|" capacitor.config.json
 
       - name: Add Android platform
         run: |
@@ -93,13 +98,30 @@ jobs:
           sed -i 's|android:name=".MainActivity"|android:name=".MainActivity" android:supportsPictureInPicture="true"|' "$MF"
           grep -q supportsPictureInPicture "$MF"
 
+      - name: Keep the same signing key between builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-v1
+
       - name: Build debug APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk akash-stream.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: akash-stream-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: akash-stream.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Akash Stream v${{ github.run_number }}
+          files: akash-stream.apk
+          make_latest: true
