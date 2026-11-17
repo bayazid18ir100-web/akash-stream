@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07122b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<title>Akash Stream</title>
+<style>
+:root{--bg:#07122b;--card:#0e1f45;--line:#1c3366;--tx:#eaf2ff;--mut:#8ea6d1;--cy:#22d3ee;--or:#ff9f43}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+header img{width:38px;height:38px}
+header h1{font-size:20px;margin:0;flex:1}
+header h1 span{color:var(--cy)}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 40px}
+.player{background:#000;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/9;border:1px solid var(--line)}
+video{width:100%;height:100%;background:#000}
+.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut);pointer-events:none}
+.now{margin:10px 2px;color:var(--mut);font-size:14px}
+.now b{color:var(--tx)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+input{flex:1;min-width:140px}
+button{cursor:pointer}
+.chip{border-radius:999px;padding:6px 14px;font-size:14px}
+.chip.on{background:linear-gradient(90deg,var(--cy),#3b82f6);color:#04122b;border-color:transparent;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ch{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative;min-height:84px}
+.ch:hover,.ch.on{border-color:var(--cy)}
+.ch .n{font-weight:600;font-size:14px;padding-right:22px}
+.ch .m{color:var(--mut);font-size:12px;margin-top:6px}
+.ch .f{position:absolute;top:8px;right:8px;background:none;border:0;padding:0;font-size:18px;color:var(--mut)}
+.ch .f.on{color:var(--or)}
+.del{position:absolute;bottom:6px;right:8px;background:none;border:0;padding:0;color:#ff6b6b;font-size:13px}
+#admin{display:none;margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+#admin h3{margin:0 0 10px}
+textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monospace;font-size:12px}
+.empty{color:var(--mut);padding:20px 4px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+<img src="icon.svg" alt="">
+<h1>Akash <span>Stream</span></h1>
+<button id="adminBtn" class="chip">Admin</button>
+</header>
+<main>
+<div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg">Ekta channel select koro</div></div>
+<div class="now" id="now">Kichu play hocche na</div>
+<div class="bar" id="cats"></div>
+<div class="bar">
+<input id="q" placeholder="Channel khojo...">
+<select id="cty"><option value="">BD + IN</option><option value="BD">Bangladesh</option><option value="IN">India</option></select>
+<button id="favb" class="chip">★ Favorites</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<div id="admin">
+<div id="loginBox">
+<h3>Admin Login</h3>
+<div class="bar"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"></div>
+<button id="loginBtn">Login</button> <span id="lerr" style="color:#ff6b6b"></span>
+</div>
+<div id="panel" class="hide">
+<h3>Playlist import (m3u)</h3>
+<div class="bar"><input id="lnk" placeholder="m3u link (optional)"><button id="ldBtn">Load</button></div>
+<textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
+<div class="bar">
+<select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
+<button id="imp">Import</button>
+<button id="clr">Sob channel muchbe</button>
+<button id="out">Logout</button>
+</div>
+</div>
+</div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getFirestore,collection,onSnapshot,query,orderBy,doc,writeBatch,deleteDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ====== Firebase config ======
+const firebaseConfig={
+  apiKey:"AIzaSyA9bFp2qYTdWrTiX-rfs1KCUS2PEB-30Y8",
+  authDomain:"akash-stream.firebaseapp.com",
+  projectId:"akash-stream",
+  storageBucket:"akash-stream.firebasestorage.app",
+  messagingSenderId:"237310635286",
+  appId:"1:237310635286:web:5a998de465cd9d5dbdb437"
+};
+// =================================================
+
+const CATS=["All","Sports","News","Entertainment","Kids","Movies","Music"];
+const $=i=>document.getElementById(i);
+let chans=[],favs=[],cat="All",onlyFav=false,cur=null,hls=null,isAdmin=false;
+try{favs=JSON.parse(localStorage.getItem("as_fav")||"[]")}catch(e){}
+const saveFavs=()=>{try{localStorage.setItem("as_fav",JSON.stringify(favs))}catch(e){}};
+
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+const col=collection(db,"channels");
+
+onSnapshot(query(col,orderBy("name")),s=>{
+  chans=s.docs.map(d=>({id:d.id,...d.data()}));render();
+},()=>{$("grid").innerHTML='<div class="empty">Channel list load hoy nai. Firebase config ar rules check koro.</div>'});
+
+onAuthStateChanged(auth,u=>{
+  isAdmin=!!u;
+  $("loginBox").classList.toggle("hide",isAdmin);
+  $("panel").classList.toggle("hide",!isAdmin);
+  render();
+});
+
+function mapCat(g){g=(g||"").toLowerCase();
+  if(/sport|cricket|football/.test(g))return"Sports";
+  if(/news/.test(g))return"News";
+  if(/kid|cartoon/.test(g))return"Kids";
+  if(/movie|film|cinema/.test(g))return"Movies";
+  if(/music/.test(g))return"Music";
+  return"Entertainment"}
+function hid(t){let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return"c"+h.toString(36)}
+function parse(text,cty){
+  const out=[];let meta=null;
+  text.split(/\r?\n/).forEach(raw=>{const l=raw.trim();
+    if(l.startsWith("#EXTINF")){
+      const g=l.match(/group-title="([^"]*)"/);const i=l.indexOf(",");
+      const nm=(i>=0?l.slice(i+1).trim():"")||"Channel";
+      meta={name:nm,cat:mapCat((g?g[1]:"")+" "+nm)};
+    }else if(l&&l[0]!=="#"&&meta){out.push({name:meta.name,cat:meta.cat,cty,url:l});meta=null}
+  });
+  return out}
+
+function renderCats(){
+  $("cats").innerHTML="";
+  CATS.forEach(c=>{const b=document.createElement("button");b.className="chip"+(c===cat?" on":"");b.textContent=c;
+    b.onclick=()=>{cat=c;renderCats();render()};$("cats").appendChild(b)})}
+
+function render(){
+  const q=$("q").value.toLowerCase(),cy=$("cty").value,g=$("grid");g.innerHTML="";
+  const list=chans.filter(c=>(cat==="All"||c.cat===cat)&&(!cy||c.cty===cy)&&(c.name||"").toLowerCase().includes(q)&&(!onlyFav||favs.includes(c.url)));
+  if(!list.length){g.innerHTML='<div class="empty">Kono channel nai.</div>';return}
+  list.forEach(c=>{
+    const d=document.createElement("div");d.className="ch"+(cur&&cur.url===c.url?" on":"");
+    const n=document.createElement("div");n.className="n";n.textContent=c.name;
+    const m=document.createElement("div");m.className="m";m.textContent=c.cat+" · "+c.cty;
+    const f=document.createElement("button");const isF=favs.includes(c.url);f.className="f"+(isF?" on":"");f.textContent=isF?"★":"☆";
+    f.onclick=e=>{e.stopPropagation();const i=favs.indexOf(c.url);if(i>-1)favs.splice(i,1);else favs.push(c.url);saveFavs();render()};
+    d.onclick=()=>play(c);
+    d.append(n,m,f);
+    if(isAdmin){const x=document.createElement("button");x.className="del";x.textContent="Delete";
+      x.onclick=async e=>{e.stopPropagation();try{await deleteDoc(doc(db,"channels",c.id))}catch(er){alert("Delete hoy nai")}};d.append(x)}
+    g.append(d)})}
+
+function play(c){
+  cur=c;const v=$("v");
+  $("msg").style.display="none";
+  $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
+  if(hls){hls.destroy();hls=null}
+  const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
+  if(location.protocol==="https:"&&c.url.startsWith("http://")){fail("Ei stream http, tai https site-e browser atkay. Native app-e cholbe.");render();return}
+  if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
+    hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
+    hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail("Stream load hocche na")});
+  }else{v.src=c.url;v.play().catch(()=>{})}
+  render()}
+
+$("q").oninput=render;$("cty").onchange=render;
+$("favb").onclick=function(){onlyFav=!onlyFav;this.classList.toggle("on",onlyFav);render()};
+$("adminBtn").onclick=()=>{const a=$("admin");a.style.display=a.style.display==="block"?"none":"block";if(a.style.display==="block")a.scrollIntoView({behavior:"smooth"})};
+
+$("loginBtn").onclick=async()=>{
+  $("lerr").textContent="";
+  try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}
+  catch(e){$("lerr").textContent="Login hoy nai: email/password check koro"}};
+$("out").onclick=()=>signOut(auth);
+
+$("ldBtn").onclick=async()=>{
+  try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
+  catch(e){alert("Link theke load hoy nai (CORS atkate pare). m3u text paste koro.")}};
+
+$("imp").onclick=async()=>{
+  const items=parse($("m3u").value,$("icty").value);
+  if(!items.length)return alert("Kono channel pawa jay nai");
+  $("imp").disabled=true;
+  try{
+    for(let i=0;i<items.length;i+=400){
+      const b=writeBatch(db);
+      items.slice(i,i+400).forEach(c=>b.set(doc(db,"channels",hid(c.url)),c));
+      await b.commit();
+    }
+    $("m3u").value="";alert(items.length+" ta channel add hoyeche");
+  }catch(e){alert("Add hoy nai: "+(e.message||e))}
+  $("imp").disabled=false};
+
+$("clr").onclick=async()=>{
+  if(!confirm("Sob channel muchbe?"))return;
+  try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
+  catch(e){alert("Muchte parini")}};
+
+renderCats();render();
+</script>
+</body>
+</html>
