@@ -214,6 +214,11 @@ function detectCty(name,group,tvgid){
   const g=(group||"").toLowerCase();
   if(/bangladesh|\bbd\b/.test(g))return"BD";
   if(/\bindia\b/.test(g))return"IN";
+  return guessCty(name)}
+function guessCty(name){
+  const n=" "+String(name||"").toLowerCase().replace(/\s*[\[(][^\])]*[\])]/g," ")+" ";
+  if(/\bstar (plus|sports|gold|utsav|jalsha|pravah|vijay|bharat|movies|world|maa|kiran)|\bzee\b|\bsony\b|colors|&tv|&pictures|\bsab tv|aaj tak|ndtv|\babp\b|news ?18|republic|india tv|tv ?9|doordarshan|\bdd (national|news|sports|bangla)|sun tv|\betv\b|asianet|gemini|mazhavil|surya tv|kairali|udaya|dangal|hungama|\bpogo\b|sonic|b4u|9xm|zing|life ok|jalsha|hindi|tamil|telugu|malayalam|kannada|marathi|punjabi|gujarati|odia|\bten [123]\b|sony ten|willow|\bipl\b/.test(n))return"IN";
+  if(/somoy|jamuna|ekattor|ekushey|channel ?i\b|\bntv\b|\brtv\b|\batn\b|\bbtv\b|gazi|t ?sports|\bdbc\b|independent tv|desh tv|nagorik|maasranga|boishakhi|bangla ?vision|channel ?(9|24)|news ?24|my ?tv|asian tv|\bsa tv\b|duronto|deepto|ananda tv|\bgtv\b|bijoy|nexus|banglavision|সময়|এটিএন|একাত্তর/.test(n))return"BD";
   return null}
 function parse(text,cty,forceCat){
   const out=[];let meta=null;
@@ -291,9 +296,9 @@ function render(){
 async function editCh(c){
   const name=prompt("Channel name",c.name);if(name===null)return;
   const cat=prompt("Category: "+CATS.join(", "),c.cat);if(cat===null)return;
-  const cty=prompt("Country: BD or IN",c.cty);if(cty===null)return;
+  const cty=prompt("Country: BD, IN, or leave empty for Other",c.cty||"");if(cty===null)return;
   const logo=prompt("Logo link (leave empty for no logo)",c.logo||"");if(logo===null)return;
-  try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:cty.trim().toUpperCase()==="IN"?"IN":"BD",url:c.url,logo:logo.trim(),...(c.ord!=null?{ord:c.ord}:{})})}
+  try{await setDoc(doc(db,"channels",c.id),{name:name.trim()||c.name,cat:CATS.includes(cat.trim())?cat.trim():c.cat,cty:({BD:"BD",IN:"IN"})[cty.trim().toUpperCase()]||"",url:c.url,logo:logo.trim(),...(c.ord!=null?{ord:c.ord}:{})})}
   catch(e){alert("Edit failed")}}
 
 function toast(t){
@@ -466,7 +471,9 @@ $("ctyBtn").onclick=async()=>{
     chans.forEach(c=>{
       let n=detectCty(c.name,"","");
       if(!n){const r=find(c.name,c.cty);if(r&&r.exact&&(r.country==="BD"||r.country==="IN"))n=r.country}
-      if(n&&n!==c.cty)changes.push({id:c.id,cty:n})});
+      n=n||"";
+      if(n!==(c.cty||""))changes.push({id:c.id,cty:n})});
+    if(changes.length&&!confirm(changes.length+" channels will change country. Channels whose country cannot be detected become 'Other' (they stay in All, but not in Bangladesh/India tabs). Continue?")){st.textContent="Cancelled.";btn.disabled=false;return}
     for(let i=0;i<changes.length;i+=400){
       const w=writeBatch(db);
       changes.slice(i,i+400).forEach(f=>w.update(doc(db,"channels",f.id),{cty:f.cty}));
@@ -657,7 +664,7 @@ $("imp").onclick=async()=>{
     if(unk.length){
       let find=null;
       try{find=buildLogoMatcher(await getDb("channels"),[])}catch(e){}
-      unk.forEach(c=>{let n="BD";if(find){const r=find(c.name,"BD");if(r&&r.exact&&(r.country==="BD"||r.country==="IN"))n=r.country}c.cty=n})}
+      unk.forEach(c=>{let n="";if(find){const r=find(c.name,"BD");if(r&&r.exact&&(r.country==="BD"||r.country==="IN"))n=r.country}c.cty=n})}
     const st=$("logoMsg");
     if($("autoLogo").checked){
       const need=items.filter(c=>!c.logo);
