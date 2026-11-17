@@ -106,6 +106,7 @@ const firebaseConfig={
 };
 // =================================================
 
+const PROXY="https://akashproxy.bayazid18ir100.workers.dev/";
 const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 const CATS=["All","Sports","News","Entertainment","Kids","Movies","Music"];
 const $=i=>document.getElementById(i);
@@ -176,12 +177,13 @@ function play(c){
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
   const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
   const failMsg=httpOnly?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
+  const src=httpOnly?PROXY+"?url="+encodeURIComponent(c.url):c.url;
   v.onerror=()=>fail(failMsg);
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
-    hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
+    hls=new Hls();hls.loadSource(src);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
     hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
-  }else{v.src=c.url;v.play().catch(()=>{})}
+  }else{v.src=src;v.play().catch(()=>{})}
   render()}
 
 $("q").oninput=render;$("cty").onchange=render;
