@@ -176,7 +176,7 @@ const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 const col=collection(db,"channels");
 
 onSnapshot(query(col,orderBy("name")),s=>{
-  chans=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>((a.ord??1e9)-(b.ord??1e9))||String(a.name).localeCompare(String(b.name)));render();offerContinue();
+  chans=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>((a.ord??1e9)-(b.ord??1e9))||String(a.name).localeCompare(String(b.name)));render();autoStart();offerContinue();
 },()=>{$("grid").innerHTML='<div class="empty">Failed to load channels. Check your internet and Firestore rules.</div>'});
 
 onAuthStateChanged(auth,u=>{
@@ -315,8 +315,18 @@ function offerContinue(){
   const b=document.createElement("button");b.id="contBtn";b.className="chip on";b.style.cssText="pointer-events:auto;margin-top:6px";
   b.textContent="▶ Continue: "+c.name;b.onclick=()=>play(c);
   $("msg").appendChild(b)}
+let autoDone=false,autoMuted=false;
+function autoStart(){
+  if(autoDone||cur||!chans.length)return;
+  const list=chans.filter(c=>match(tab,c));
+  if(!list.length)return;
+  autoDone=true;play(list[0],true)}
+function tryPlay(v){
+  v.play().catch(()=>{
+    v.muted=true;autoMuted=true;
+    v.play().then(()=>toast("Sound off - tap the volume icon to unmute")).catch(()=>{})})}
 function play(c,auto){
-  if(!auto)tried=new Set();
+  if(!auto){tried=new Set();const vv=$("v");if(autoMuted){vv.muted=false;autoMuted=false}}
   tried.add(c.url);
   try{localStorage.setItem(lastKey,c.url)}catch(e){}
   clearTimeout(stallTimer);
@@ -339,9 +349,9 @@ function play(c,auto){
   v.onerror=()=>fail(failMsg);
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
     hls=new Hls();hls.loadSource(playUrl);hls.attachMedia(v);
-    hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
+    hls.on(Hls.Events.MANIFEST_PARSED,()=>tryPlay(v));
     hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal)fail(failMsg)});
-  }else{v.src=playUrl;v.play().catch(()=>{})}
+  }else{v.src=playUrl;tryPlay(v)}
   render()}
 
 function step(dir){
