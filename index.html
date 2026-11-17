@@ -46,7 +46,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 .empty{color:var(--mut);padding:20px 4px}
 .hide{display:none!important}
 body.pip{padding:0;overflow:hidden}
-body.pip header,body.pip .bar,body.pip .grid,body.pip .now,body.pip #admin,body.pip .msg{display:none!important}
+body.pip .updbar,body.pip header,body.pip .bar,body.pip .grid,body.pip .now,body.pip #admin,body.pip .msg{display:none!important}
 body.pip main{padding:0;max-width:none}
 body.pip .stick{position:fixed;inset:0;padding:0;z-index:99;background:#000}
 body.pip .player{width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;margin:0}
@@ -180,7 +180,8 @@ function play(c){
   $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
   if(hls){hls.destroy();hls=null}
   const fail=t=>{$("msg").style.display="flex";$("msg").textContent=t};
-  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://");
+  const inApp=/AkashApp/.test(navigator.userAgent);
+  const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!inApp;
   const failMsg=httpOnly?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
   const src=httpOnly?PROXY+"?url="+encodeURIComponent(c.url):c.url;
   const diag=async()=>{try{const r=await fetch(src);const t=(await r.text()).replace(/\s+/g," ").slice(0,90);fail("Proxy "+r.status+": "+(t||"(empty)"))}catch(e){fail("Proxy blocked by origin check or network ("+e.message+")")}};
@@ -240,6 +241,21 @@ $("clr").onclick=async()=>{
   if(!confirm("Delete all channels?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
   catch(e){alert("Could not delete")}};
+
+(function(){
+  const m=navigator.userAgent.match(/AkashApp\/(\d+)/);if(!m)return;const cur=+m[1];
+  fetch("https://api.github.com/repos/bayazid18ir100-web/akash-stream/releases/latest").then(r=>r.json()).then(j=>{
+    const n=parseInt(String(j.tag_name||"").replace(/\D/g,""),10);
+    const a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));
+    if(!a||!(n>cur))return;
+    const b=document.createElement("div");b.className="updbar";
+    b.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:50;background:#0e1f45;border:1px solid #22d3ee;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between";
+    const t=document.createElement("span");t.textContent="নতুন আপডেট এসেছে";
+    const u=document.createElement("button");u.className="chip on";u.textContent="আপডেট করুন";
+    u.onclick=()=>{location.href=a.browser_download_url};
+    b.append(t,u);document.body.appendChild(b);
+  }).catch(()=>{});
+})();
 
 renderCats();render();
 if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
