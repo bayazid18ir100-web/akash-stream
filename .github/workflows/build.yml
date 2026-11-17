@@ -34,6 +34,65 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Enable Picture-in-Picture and background play
+        run: |
+          MAIN=android/app/src/main/java/com/akash/stream/MainActivity.java
+          cat > "$MAIN" <<'EOF'
+          package com.akash.stream;
+
+          import android.app.PictureInPictureParams;
+          import android.content.res.Configuration;
+          import android.media.AudioManager;
+          import android.os.Build;
+          import android.util.Rational;
+          import android.webkit.WebView;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+
+            @Override
+            public void onUserLeaveHint() {
+              super.onUserLeaveHint();
+              if (Build.VERSION.SDK_INT >= 26) {
+                AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                if (am != null && am.isMusicActive()) {
+                  try {
+                    PictureInPictureParams params = new PictureInPictureParams.Builder()
+                        .setAspectRatio(new Rational(16, 9))
+                        .build();
+                    enterPictureInPictureMode(params);
+                  } catch (Exception e) {
+                  }
+                }
+              }
+            }
+
+            @Override
+            public void onPictureInPictureModeChanged(boolean isInPip, Configuration newConfig) {
+              super.onPictureInPictureModeChanged(isInPip, newConfig);
+              WebView w = getBridge().getWebView();
+              if (w != null) {
+                w.evaluateJavascript(
+                    "document.body.classList.toggle('pip'," + (isInPip ? "true" : "false") + ")",
+                    null);
+              }
+            }
+
+            @Override
+            public void onPause() {
+              super.onPause();
+              WebView w = getBridge().getWebView();
+              if (w != null) {
+                w.onResume();
+                w.resumeTimers();
+              }
+            }
+          }
+          EOF
+          MF=android/app/src/main/AndroidManifest.xml
+          sed -i 's|android:name=".MainActivity"|android:name=".MainActivity" android:supportsPictureInPicture="true"|' "$MF"
+          grep -q supportsPictureInPicture "$MF"
+
       - name: Build debug APK
         run: |
           cd android
