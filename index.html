@@ -74,6 +74,24 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .empty{color:var(--mut);padding:20px 4px}
 .hide{display:none!important}
+/* ===== TV mode (only when body.tv) ===== */
+body.tv{overflow:hidden;height:100vh}
+body.tv .top{position:fixed;left:0;top:0;width:58vw;z-index:30}
+body.tv .player{max-height:none}
+body.tv main{position:fixed;left:58vw;top:0;right:0;bottom:0;overflow-y:auto;max-width:none;padding:18px 22px 60px}
+body.tv .grid{grid-template-columns:repeat(3,1fr)!important;gap:18px 14px}
+body.tv .card .n{font-size:17px;height:46px;margin-top:8px}
+body.tv .chip{font-size:18px;padding:12px 20px}
+body.tv .tot{font-size:22px}
+body.tv .fab{display:none!important}
+body.tv .ib{font-size:28px;padding:6px 10px}
+body.tv .nb{width:64px;height:48px}
+body.tv :focus{outline:4px solid var(--or)!important;outline-offset:3px;border-radius:14px}
+body.tv .card:focus .lg{transform:scale(1.06);transition:transform .12s}
+body.tv.tvfs{overflow:hidden}
+body.tv.tvfs .top{inset:0;width:100vw;height:100vh;background:#000;z-index:60;padding:0}
+body.tv.tvfs header,body.tv.tvfs .nowbar,body.tv.tvfs .sb,body.tv.tvfs main,body.tv.tvfs .updbar{display:none!important}
+body.tv.tvfs .player{width:100vw;height:100vh;aspect-ratio:auto}
 </style>
 </head>
 <body>
@@ -162,6 +180,17 @@ const ADMIN_EMAIL="bayazid18ir100@gmail.com";
 // Paste your Cloudflare Worker address here (no trailing slash). Example: "https://akash-proxy.yourname.workers.dev"
 const PROXY="https://akashproxy.bayazid18ir100.workers.dev";
 const INAPP=/AkashApp/.test(navigator.userAgent);
+// TV mode: automatic on Android TV / Smart TV, or force with ?tv=1 (turn off with ?tv=0)
+const TV=(()=>{try{
+  const q=new URLSearchParams(location.search).get("tv");
+  if(q==="0"){localStorage.removeItem("as_tv");return false}
+  if(q==="1")localStorage.setItem("as_tv","1");
+  if(localStorage.getItem("as_tv")==="1")return true;
+}catch(e){}
+  const ua=navigator.userAgent;
+  return /Android.*\bTV\b|SmartTV|SMART-TV|BRAVIA|Tizen|Web0S|HbbTV|GoogleTV|AndroidTV/i.test(ua)||/\bAFT[A-Z]/.test(ua)})();
+if(TV)document.body.classList.add("tv");
+let tvfs=false,lastFk="";
 const CATS=["Sports","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle"];
 const KEYS=["Bangladesh","HTTPS only","Favourites","Sports","India","News","Entertainment","Kids","Movies","Music","Religious","Documentary","Education","Lifestyle","All"];
 const LABELS={"HTTPS only":"শুধু HTTPS","Bangladesh":"বাংলাদেশ","Favourites":"পছন্দের","Sports":"খেলাধুলা","India":"ভারত","News":"সংবাদ","Entertainment":"বিনোদন","Kids":"শিশুদের","Movies":"সিনেমা","Music":"গান","Religious":"ধর্মীয়","Documentary":"ডকুমেন্টারি","Education":"শিক্ষা","Lifestyle":"লাইফস্টাইল","All":"সব"};
@@ -248,7 +277,7 @@ function renderTabs(){
     const n=chans.filter(c=>match(k,c)).length;
     const b=document.createElement("button");b.className="chip"+(k===tab?" on":"");
     b.textContent=(k==="Favourites"?"♥ ":"")+(LABELS[k]||k)+" ("+n+")";
-    b.onclick=()=>{tab=k;render()};t.appendChild(b)});
+    b.dataset.fk="t:"+k;b.onclick=()=>{tab=k;render()};t.appendChild(b)});
   t.scrollLeft=sc}
 
 function card(c){
@@ -262,6 +291,7 @@ function card(c){
   f.onclick=e=>{e.stopPropagation();const i=favs.indexOf(c.url);if(i>-1)favs.splice(i,1);else favs.push(c.url);saveFavs();render()};
   const n=document.createElement("div");n.className="n";n.textContent=c.name;
   d.append(lg,f,n);
+  d.dataset.fk="u:"+c.url;if(TV){d.tabIndex=0;f.tabIndex=-1}
   if(isAdmin){
     const a=document.createElement("div");a.className="ad";
     const e=document.createElement("button");e.className="e";e.textContent="Edit";e.onclick=ev=>{ev.stopPropagation();editCh(c)};
@@ -277,14 +307,15 @@ function card(c){
     d.ondragover=ev=>ev.preventDefault();
     d.ondrop=ev=>{ev.preventDefault();const a=ev.dataTransfer.getData("text/plain");if(a&&a!==c.id)reorder(a,c.id)};
   }
-  d.onclick=()=>{if(m==="select"){if(sel.has(c.id))sel.delete(c.id);else sel.add(c.id);updBar();render()}else if(m!=="sort")play(c)};
+  d.onclick=()=>{if(m==="select"){if(sel.has(c.id))sel.delete(c.id);else sel.add(c.id);updBar();render()}else if(m!=="sort"){play(c);if(TV)setFs(true)}};
   return d}
 
 function visible(){
   const q=$("q").value.toLowerCase().trim();
   return chans.filter(c=>match(tab,c)&&(c.name||"").toLowerCase().includes(q))}
 
-function render(){
+function render(){render0();tvRestore()}
+function render0(){
   const g=$("grid");
   $("tot").textContent="মোট চ্যানেল: "+chans.length;
   renderTabs();renderCloud();
@@ -332,7 +363,7 @@ function play(c,auto){
   clearTimeout(stallTimer);
   cur=c;const v=$("v");document.body.classList.add("playing");
   $("msg").style.display="none";
-  $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;
+  $("now").innerHTML="Playing: <b></b>";$("now").querySelector("b").textContent=c.name;if(TV&&tvfs)toast(c.name);
   if(hls){hls.destroy();hls=null}
   let failed=false;
   const fail=t=>{
@@ -364,6 +395,80 @@ function step(dir){
   if(el)el.scrollIntoView({block:"center",behavior:"smooth"})}
 $("prevBtn").onclick=()=>step(-1);
 $("nextBtn").onclick=()=>step(1);
+
+
+// ===== TV mode logic (does nothing on phones) =====
+function setFs(on){
+  if(!TV||tvfs===on)return;
+  tvfs=on;document.body.classList.toggle("tvfs",on);
+  $("v").controls=!on;
+  if(on){try{history.pushState({fs:1},"")}catch(e){}if(cur)toast(cur.name)}
+  else{try{if(history.state&&history.state.fs)history.back()}catch(e){}tvRestore()}}
+function tvFav(url){
+  const c=chans.find(x=>x.url===url);if(!c)return;
+  const i=favs.indexOf(url);if(i>-1)favs.splice(i,1);else favs.push(url);
+  saveFavs();render();toast((i>-1?"♡ Removed: ":"♥ Favourite: ")+c.name)}
+let enterT=0,enterLong=false;
+function tvRestore(){
+  if(!TV||tvfs)return;
+  const a=document.activeElement;if(a&&a!==document.body)return;
+  const all=[...document.querySelectorAll("[data-fk]")];
+  const t=(lastFk&&all.find(e=>e.dataset.fk===lastFk))||document.querySelector(".card.on")||document.querySelector(".card");
+  if(t)t.focus()}
+function tvNav(dir){
+  const els=[...document.querySelectorAll("[data-fk],header .ib,.nowbar .nb,.player")].filter(e=>e.getClientRects().length&&!(e.classList&&e.classList.contains("fv")));
+  const a=document.activeElement;
+  if(!a||!els.includes(a)){const f=els.find(e=>e.classList.contains("card"))||els[0];if(f)f.focus();return}
+  const r=a.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let best=null,bs=1e12;
+  for(const e of els){if(e===a)continue;
+    const q=e.getBoundingClientRect(),x=q.left+q.width/2,y=q.top+q.height/2,dx=x-cx,dy=y-cy;
+    let p,o;
+    if(dir==="ArrowRight"){if(dx<=4)continue;p=dx;o=Math.abs(dy)}
+    else if(dir==="ArrowLeft"){if(dx>=-4)continue;p=-dx;o=Math.abs(dy)}
+    else if(dir==="ArrowDown"){if(dy<=4)continue;p=dy;o=Math.abs(dx)}
+    else{if(dy>=-4)continue;p=-dy;o=Math.abs(dx)}
+    const sc=p+o*2.5;if(sc<bs){bs=sc;best=e}}
+  if(best)best.focus()}
+if(TV){
+  document.addEventListener("focusin",e=>{const f=e.target.closest&&e.target.closest("[data-fk]");if(f)lastFk=f.dataset.fk});
+  window.addEventListener("popstate",()=>{if(tvfs){tvfs=false;document.body.classList.remove("tvfs");$("v").controls=true;tvRestore()}});
+  document.querySelector(".player").tabIndex=0;
+  document.addEventListener("keyup",e=>{
+    if(e.key!=="Enter"||tvfs)return;
+    const t=e.target;
+    if(t&&t.classList&&t.classList.contains("card")){e.preventDefault();if(!enterLong)t.click();enterLong=false}});
+  const hint=document.createElement("div");
+  hint.style.cssText="font-size:14px;color:var(--mut);margin:-4px 2px 10px";
+  hint.textContent="OK = play  |  hold OK = ♥ favourite  |  Back = exit fullscreen";
+  $("tot").after(hint);
+  document.addEventListener("keydown",e=>{
+    const v=$("v");
+    if(autoMuted){v.muted=false;autoMuted=false}
+    const t=e.target,typing=t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    const k=e.key,kc=e.keyCode;
+    if(k==="Escape"||k==="GoBack"||k==="BrowserBack"||kc===4||(k==="Backspace"&&!typing)){
+      if(tvfs){e.preventDefault();setFs(false)}return}
+    if(k==="ColorF0Red"||k==="ColorF2Yellow"||kc===403||kc===405||k==="f"||k==="F"){
+      const fc=t&&t.dataset&&t.dataset.fk&&t.dataset.fk.startsWith("u:")?t.dataset.fk.slice(2):(cur&&cur.url);
+      if(fc){e.preventDefault();tvFav(fc)}return}
+    if(tvfs){
+      if(k==="ArrowUp"||k==="ChannelUp"||kc===427){e.preventDefault();step(-1)}
+      else if(k==="ArrowDown"||k==="ChannelDown"||kc===428){e.preventDefault();step(1)}
+      else if(k==="Enter"||k===" "||k==="MediaPlayPause"){e.preventDefault();v.paused?v.play().catch(()=>{}):v.pause()}
+      return}
+    if(typing)return;
+    if(k==="ArrowUp"||k==="ArrowDown"||k==="ArrowLeft"||k==="ArrowRight"){e.preventDefault();tvNav(k)}
+    else if(k==="Enter"){
+      if(t&&t.classList.contains("card")){
+        e.preventDefault();
+        if(!e.repeat){enterT=Date.now();enterLong=false}
+        else if(!enterLong&&Date.now()-enterT>600){enterLong=true;tvFav(t.dataset.fk.slice(2))}}
+      else if(t&&t.classList.contains("player")){e.preventDefault();if(cur)setFs(true)}}
+    else if(k==="ChannelUp"||kc===427){step(-1)}
+    else if(k==="ChannelDown"||kc===428){step(1)}
+  });
+}
 
 $("q").oninput=render;
 $("sBtn").onclick=()=>{const s=$("sb");s.classList.toggle("show");if(s.classList.contains("show"))$("q").focus();else{$("q").value="";render()}};
