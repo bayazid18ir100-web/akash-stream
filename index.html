@@ -73,7 +73,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v4</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v5</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
@@ -483,6 +483,21 @@ $("clr").onclick=async()=>{
   ["resize","focus","pageshow","click","touchstart"].forEach(e=>window.addEventListener(e,chk,{passive:true}));
   ["resize","orientationchange","pageshow"].forEach(e=>window.addEventListener(e,land));
   document.addEventListener("visibilitychange",chk);chk();land();
+  // video fullscreen button -> rotate to landscape (and back)
+  const rot=async l=>{
+    try{
+      const C=window.Capacitor;
+      if(C&&C.Plugins&&C.Plugins.ScreenOrientation){l?await C.Plugins.ScreenOrientation.lock({orientation:"landscape"}):await C.Plugins.ScreenOrientation.unlock();return}
+      if(C&&C.nativePromise){await C.nativePromise("ScreenOrientation",l?"lock":"unlock",l?{orientation:"landscape"}:{});return}
+    }catch(e){}
+    try{l?await screen.orientation.lock("landscape"):screen.orientation.unlock()}catch(e){}
+  };
+  const fsChange=()=>rot(!!(document.fullscreenElement||document.webkitFullscreenElement));
+  document.addEventListener("fullscreenchange",fsChange);
+  document.addEventListener("webkitfullscreenchange",fsChange);
+  const vv=document.getElementById("v");
+  vv.addEventListener("webkitbeginfullscreen",()=>rot(true));
+  vv.addEventListener("webkitendfullscreen",()=>rot(false));
   // update bar (only inside the Android app)
   const m=navigator.userAgent.match(/AkashApp\/(\d+)/);if(!m)return;const cur=+m[1];
   fetch("https://api.github.com/repos/bayazid18ir100-web/akash-stream/releases/latest").then(r=>r.json()).then(j=>{
