@@ -69,6 +69,7 @@ textarea{width:100%;min-height:120px;margin:8px 0;font-family:ui-monospace,monos
 <div id="panel" class="hide">
 <h3>Playlist import (m3u)</h3>
 <div class="bar"><input id="lnk" placeholder="m3u link (optional)"><button id="ldBtn">Load</button></div>
+<div class="bar"><input id="m3uFile" type="file" accept=".m3u,.m3u8,.txt,text/plain,audio/x-mpegurl,application/vnd.apple.mpegurl,*/*"></div>
 <textarea id="m3u" placeholder="#EXTM3U&#10;#EXTINF:-1 group-title=&quot;Sports&quot;,Channel Name&#10;https://example.com/stream.m3u8"></textarea>
 <div class="bar">
 <select id="icty"><option value="BD">Country: Bangladesh</option><option value="IN">Country: India</option></select>
@@ -197,6 +198,10 @@ $("showpw").onchange=e=>{$("pw").type=e.target.checked?"text":"password"};
 $("ldBtn").onclick=async()=>{
   try{const r=await fetch($("lnk").value.trim());if(!r.ok)throw 0;$("m3u").value=await r.text()}
   catch(e){alert("Link theke load hoy nai (CORS atkate pare). m3u text paste koro.")}};
+
+$("m3uFile").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{$("m3u").value=await f.text()}catch(er){alert("File pora jay nai")}};
 
 $("imp").onclick=async()=>{
   const items=parse($("m3u").value,$("icty").value);
