@@ -39,6 +39,17 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Set app icon
+        run: |
+          test -f app-icon.png
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          for d in $RES/mipmap-*dpi; do
+            cp app-icon.png "$d/ic_launcher.png"
+            cp app-icon.png "$d/ic_launcher_round.png"
+            cp app-icon.png "$d/ic_launcher_foreground.png"
+          done
+
       - name: Enable Picture-in-Picture and background play
         run: |
           MAIN=android/app/src/main/java/com/akash/stream/MainActivity.java
