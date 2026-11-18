@@ -458,6 +458,7 @@ let APP_LINK=APK_DIRECT;
 fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(j=>{const u=String(j.appLink||"").trim();if(/^https:\/\//i.test(u))APP_LINK=directLink(u)}).catch(()=>{});
 async function shareChannel(){
   const text="Akash Stream - free live TV app.\nTap the link below, the download starts right away:";
+  try{const P=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AkashShare;if(P){await P.share({title:"Akash Stream",text:text+"\n"+APP_LINK});return}}catch(e){}
   try{if(navigator.share){await navigator.share({title:"Akash Stream",text,url:APP_LINK});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await copyText(text+"\n"+APP_LINK);toast("App link copied")}catch(e){prompt("Copy this link",APP_LINK)}}
 $("shareBtn").onclick=shareChannel;
