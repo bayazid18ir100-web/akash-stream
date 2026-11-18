@@ -1,3 +1,4 @@
+
 {
   "appId": "com.akash.stream",
   "appName": "Akash Stream",
@@ -9,5 +10,10 @@
   "android": {
     "allowMixedContent": true,
     "appendUserAgent": "AkashApp/1"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }
