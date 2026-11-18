@@ -98,6 +98,11 @@ body.tv.tvfs .player{width:100vw;height:100vh;aspect-ratio:auto}
 body.playing .fitb{display:block}
 .player.act .fitb{opacity:.95;pointer-events:auto}
 body.tv .fitb,body.pip .fitb{display:none!important}
+.fsb{right:54px}
+body.fs{overflow:hidden}
+body.fs .top{position:fixed;inset:0;z-index:60;padding:0;background:#000}
+body.fs header,body.fs .nowbar,body.fs .sb,body.fs .fab,body.fs .updbar{display:none!important}
+body.fs .player{width:100vw;height:100vh;max-height:none;aspect-ratio:auto}
 .gi{position:absolute;left:50%;top:16%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:8px 16px;border-radius:12px;font-size:16px;z-index:6;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 .player:fullscreen,.player:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;background:#000}
 #offBar{position:fixed;left:0;right:0;top:0;z-index:95;background:#b91c1c;color:#fff;text-align:center;font-size:13px;padding:calc(6px + env(safe-area-inset-top)) 10px 6px;display:none}
@@ -109,14 +114,14 @@ body.tv .fitb,body.pip .fitb{display:none!important}
 <body>
 <div class="top">
 <header>
-<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v11</span></div>
+<div class="brand"><img src="logo.svg" alt="Akash Stream"><h1>Akash Stream</h1><span id="ver" style="color:var(--mut);font-size:10px">v12</span></div>
 <button class="ib" id="sBtn" aria-label="Search">🔍</button>
 <button class="ib" id="tBtn" aria-label="Theme">☀️</button>
 <button class="ib" id="gBtn" aria-label="Grid size">▦</button>
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
-<div class="player"><video id="v" controls playsinline></video><button class="fitb" id="fitBtn" aria-label="Screen fit">⤢</button><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
+<div class="player"><video id="v" controls controlsList="nofullscreen" playsinline></video><button class="fitb fsb" id="fsBtn" aria-label="Fullscreen">⛶</button><button class="fitb" id="fitBtn" aria-label="Screen fit">⤢</button><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
 <div class="nowbar"><div class="now" id="now">Nothing is playing</div>
 <button class="nb" id="repBtn" aria-label="Report broken channel">⚠️</button>
 <button class="nb" id="shareBtn" aria-label="Share channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
@@ -874,15 +879,26 @@ function gi(t){
 })();
 
 // 2) gestures (phones): left swipe = brightness, right swipe = volume, double tap = mute / fullscreen
-function toggleFs(){
-  const v=$("v"),pl=document.querySelector(".player");
+let fsOn=false;
+async function lockLand(l){
   try{
-    if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
-    if(pl.requestFullscreen)pl.requestFullscreen().catch(()=>{});
-    else if(pl.webkitRequestFullscreen)pl.webkitRequestFullscreen();
-    else if(v.requestFullscreen)v.requestFullscreen().catch(()=>{});
-    else if(v.webkitEnterFullscreen)v.webkitEnterFullscreen();
-  }catch(e){}}
+    const C=window.Capacitor;
+    if(C&&C.Plugins&&C.Plugins.ScreenOrientation){l?await C.Plugins.ScreenOrientation.lock({orientation:"landscape"}):await C.Plugins.ScreenOrientation.unlock();return true}
+    if(C&&C.nativePromise){await C.nativePromise("ScreenOrientation",l?"lock":"unlock",l?{orientation:"landscape"}:{});return true}
+  }catch(e){}
+  try{l?await screen.orientation.lock("landscape"):screen.orientation.unlock();return true}catch(e){}
+  return false}
+function setFsMode(on){
+  if(TV||fsOn===on)return;
+  fsOn=on;document.body.classList.toggle("fs",on);
+  $("fsBtn").textContent=on?"🗗":"⛶";
+  lockLand(on).then(ok=>{if(on&&!ok&&window.innerHeight>window.innerWidth)toast("ফোনটা আড়াআড়ি ঘোরান")});
+  if(on){try{history.pushState({akfs:1},"")}catch(e){}}
+  else{try{if(history.state&&history.state.akfs)history.back()}catch(e){}}}
+window.addEventListener("popstate",()=>{
+  if(fsOn){fsOn=false;document.body.classList.remove("fs");$("fsBtn").textContent="⛶";lockLand(false)}});
+$("fsBtn").onclick=e=>{e.stopPropagation();setFsMode(!fsOn)};
+function toggleFs(){setFsMode(!fsOn)}
 (function(){
   if(TV||!("ontouchstart" in window))return;
   const pl=document.querySelector(".player"),v=$("v");
@@ -892,7 +908,7 @@ function toggleFs(){
     if(e.touches.length!==1){mode="skip";return}
     const t=e.touches[0],r=pl.getBoundingClientRect();
     // leave the bottom control bar and the top-right fit button alone
-    if(t.clientY>r.bottom-64||(t.clientY<r.top+52&&t.clientX>r.right-60)){mode="skip";return}
+    if(t.clientY>r.bottom-64||(t.clientY<r.top+52&&t.clientX>r.right-104)){mode="skip";return}
     sx=t.clientX;sy=t.clientY;st=Date.now();mode="pending";
     side=(t.clientX-r.left)<r.width/2?"L":"R";
     startVal=side==="L"?bright:(v.muted?0:v.volume);
