@@ -35,6 +35,7 @@ html.cmode .cbar{display:flex}
 html.cmode .cbar.show{opacity:1;pointer-events:auto}
 .cbar button{background:none;border:0;color:#fff;font-size:24px;width:48px;height:44px;border-radius:10px;cursor:pointer;padding:0}
 .cbar button:active{background:rgba(255,255,255,.22)}
+@media(max-width:520px){.cbar{gap:0;padding:26px 6px 6px}.cbar button{width:40px;height:40px;font-size:20px}.cbar .cn{font-size:12px;padding:0 4px}}
 .cbar .cn{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px;padding:0 8px;opacity:.9}
 .fitb:active,.fitb:focus{opacity:1}
 .msg{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut);pointer-events:none}
@@ -377,7 +378,7 @@ function autoStart(){
 function tryPlay(v){
   v.play().catch(()=>{
     v.muted=true;autoMuted=true;
-    v.play().then(()=>toast("Sound off - tap the volume icon to unmute")).catch(()=>{})})}
+    v.play().then(()=>toast("Sound off - tap the video, then 🔇 to unmute")).catch(()=>{})})}
 function play(c,auto){
   if(!auto){tried=new Set();autoSkips=0;const vv=$("v");if(autoMuted){vv.muted=false;autoMuted=false}}
   tried.add(c.url);
@@ -678,7 +679,7 @@ document.addEventListener("fullscreenchange",fsIcon);document.addEventListener("
 
 // ===== Landscape / fullscreen: our own control bar (play, channel, mute, fit, fullscreen) =====
 const cbar=$("cbar"),vid=$("v");let cTimer=null;
-const inCmode=()=>!TV&&!!(document.fullscreenElement||document.webkitFullscreenElement||(document.body.classList.contains("land")&&document.body.classList.contains("playing")));
+const inCmode=()=>!TV;
 function showBar(){cbar.classList.add("show");$("cName").textContent=cur?cur.name:"";clearTimeout(cTimer);cTimer=setTimeout(()=>cbar.classList.remove("show"),4000)}
 function updMode(){
   const on=inCmode(),was=document.documentElement.classList.contains("cmode");
@@ -696,7 +697,7 @@ $("cMute").onclick=()=>{vid.muted=!vid.muted;autoMuted=false};
 $("cFit").onclick=cycleFit;
 $("cFs").onclick=()=>$("fsBtn").click();
 const pIcon=()=>{$("cPlay").textContent=vid.paused?"▶":"⏸"},mIcon=()=>{$("cMute").textContent=(vid.muted||vid.volume===0)?"🔇":"🔊"};
-["play","pause","playing"].forEach(e=>vid.addEventListener(e,pIcon));vid.addEventListener("volumechange",mIcon);pIcon();mIcon();
+["play","pause","playing"].forEach(e=>vid.addEventListener(e,pIcon));vid.addEventListener("volumechange",mIcon);pIcon();mIcon();updMode();
 
 // ===== Cloud favourites =====
 async function syncFavs(){
