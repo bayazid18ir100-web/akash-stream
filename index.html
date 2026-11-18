@@ -22,8 +22,14 @@ header h1 span{color:var(--cy)}
 .ib{background:none;border:0;font-size:22px;padding:4px 7px;line-height:1}
 .player{background:#000;position:relative;aspect-ratio:16/9;width:100%;max-height:44vh}
 video{width:100%;height:100%;background:#000;object-fit:var(--vfit,contain)}
-.fitb{position:absolute;top:8px;left:8px;z-index:6;width:38px;height:38px;border-radius:10px;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;opacity:.6;display:none;align-items:center;justify-content:center;cursor:pointer}
-body.land.playing .fitb{display:flex}
+.pbtn{position:absolute;top:8px;left:8px;z-index:6;display:flex;gap:8px}
+.fitb{width:38px;height:38px;border-radius:10px;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;opacity:.6;display:none;align-items:center;justify-content:center;cursor:pointer}
+body.land.playing .fitb,.fitb.fsb{display:flex}
+.player:fullscreen{max-height:none;width:100vw;height:100vh;aspect-ratio:auto;background:#000}
+.player:-webkit-full-screen{max-height:none;width:100vw;height:100vh;aspect-ratio:auto;background:#000}
+.player:fullscreen #fitBtn{display:flex}
+.player:-webkit-full-screen #fitBtn{display:flex}
+body.tv .pbtn{display:none}
 .fitb:active,.fitb:focus{opacity:1}
 .msg{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mut);pointer-events:none}
 .msg img{width:64px;height:64px;border-radius:16px}
@@ -108,7 +114,7 @@ body.tv.tvfs .player{width:100vw;height:100vh;aspect-ratio:auto}
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
-<div class="player"><video id="v" controls playsinline></video><button class="fitb" id="fitBtn" aria-label="Video fit" title="Video fit">⛶</button><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
+<div class="player"><video id="v" controls playsinline controlsList="nofullscreen"></video><div class="pbtn"><button class="fitb" id="fitBtn" aria-label="Video fit" title="Video fit">↔</button><button class="fitb fsb" id="fsBtn" aria-label="Fullscreen" title="Fullscreen">⛶</button></div><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
 <div class="nowbar"><div class="now" id="now">Nothing is playing</div>
 <button class="nb" id="repBtn" aria-label="Report broken channel">⚠️</button>
 <button class="nb" id="shareBtn" aria-label="Share channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
@@ -650,6 +656,17 @@ let fitI=0;try{fitI=Math.max(0,FITS.findIndex(f=>f[0]===localStorage.getItem("as
 const applyFit=()=>document.documentElement.style.setProperty("--vfit",FITS[fitI][0]);
 $("fitBtn").onclick=e=>{e.stopPropagation();fitI=(fitI+1)%FITS.length;try{localStorage.setItem("as_fit",FITS[fitI][0])}catch(er){}applyFit();toast(FITS[fitI][1])};
 applyFit();
+$("fsBtn").onclick=async e=>{
+  e.stopPropagation();
+  const d=document,p=$("v").parentElement,on=d.fullscreenElement||d.webkitFullscreenElement;
+  try{
+    if(on){await (d.exitFullscreen?d.exitFullscreen():d.webkitExitFullscreen())}
+    else if(p.requestFullscreen)await p.requestFullscreen({navigationUI:"hide"});
+    else if(p.webkitRequestFullscreen)p.webkitRequestFullscreen();
+    else if($("v").webkitEnterFullscreen)$("v").webkitEnterFullscreen();
+  }catch(er){}};
+const fsIcon=()=>{$("fsBtn").textContent=(document.fullscreenElement||document.webkitFullscreenElement)?"✕":"⛶"};
+document.addEventListener("fullscreenchange",fsIcon);document.addEventListener("webkitfullscreenchange",fsIcon);
 
 // ===== Cloud favourites =====
 async function syncFavs(){
@@ -863,7 +880,7 @@ $("clr").onclick=async()=>{
     body.classList.toggle("land",l);document.documentElement.classList.toggle("land",l);
     if(!l&&imm)immersive(false)};
   // browsers need a tap before fullscreen is allowed: first tap in landscape while playing
-  document.addEventListener("click",()=>{if(body.classList.contains("land")&&body.classList.contains("playing")&&!fsEl())immersive(true)},true);
+  document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest(".pbtn"))return;if(body.classList.contains("land")&&body.classList.contains("playing")&&!fsEl())immersive(true)},true);
   ["resize","focus","pageshow","click","touchstart"].forEach(e=>window.addEventListener(e,chk,{passive:true}));
   ["resize","orientationchange","pageshow"].forEach(e=>window.addEventListener(e,land));
   document.addEventListener("visibilitychange",chk);chk();land();
