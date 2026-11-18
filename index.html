@@ -22,6 +22,7 @@ header h1 span{color:var(--cy)}
 .ib{background:none;border:0;font-size:22px;padding:4px 7px;line-height:1}
 .player{background:#000;position:relative;aspect-ratio:16/9;width:100%;max-height:44vh}
 video{width:100%;height:100%;background:#000;object-fit:var(--vfit,contain)}
+.hud{position:absolute;top:14%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;border-radius:12px;padding:8px 14px;display:none;align-items:center;gap:8px;z-index:7;font-size:15px;pointer-events:none}.hud.on{display:flex}.hud i{width:110px;height:6px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden;display:block}.hud b{display:block;height:100%;background:#22d3ee}
 .pbtn{position:absolute;top:8px;left:8px;z-index:6;display:flex;gap:8px}
 .fitb{width:38px;height:38px;border-radius:10px;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;opacity:.6;display:none;align-items:center;justify-content:center;cursor:pointer}
 body.land.playing .fitb,.fitb.fsb{display:flex}
@@ -121,7 +122,7 @@ body.tv.tvfs .player{width:100vw;height:100vh;aspect-ratio:auto}
 <button class="ib" id="hBtn" aria-label="Favourites">❤️</button>
 <button class="ib" id="aBtn" aria-label="Admin">⚙️</button>
 </header>
-<div class="player"><video id="v" controls playsinline controlsList="nofullscreen"></video><div class="pbtn"><button class="fitb" id="fitBtn" aria-label="Video fit" title="Video fit">↔</button><button class="fitb fsb" id="fsBtn" aria-label="Fullscreen" title="Fullscreen">⛶</button></div>
+<div class="player"><video id="v" controls playsinline controlsList="nofullscreen"></video><div class="hud" id="hud"></div><div class="pbtn"><button class="fitb" id="fitBtn" aria-label="Video fit" title="Video fit">↔</button><button class="fitb fsb" id="fsBtn" aria-label="Fullscreen" title="Fullscreen">⛶</button></div>
 <div class="cbar" id="cbar"><button id="cPrev" aria-label="Previous channel">⏮</button><button id="cPlay" aria-label="Play or pause">⏸</button><button id="cNext" aria-label="Next channel">⏭</button><span class="cn" id="cName"></span><button id="cMute" aria-label="Mute">🔊</button><button id="cFit" aria-label="Video fit" title="Video fit">↔</button><button id="cFs" aria-label="Fullscreen">⛶</button></div><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
 <div class="nowbar"><div class="now" id="now">Nothing is playing</div>
 <button class="nb" id="repBtn" aria-label="Report broken channel">⚠️</button>
@@ -894,6 +895,68 @@ $("clr").onclick=async()=>{
   if(!confirm("Delete all channels?"))return;
   try{for(let i=0;i<chans.length;i+=400){const b=writeBatch(db);chans.slice(i,i+400).forEach(c=>b.delete(doc(db,"channels",c.id)));await b.commit()}}
   catch(e){alert("Could not delete")}};
+
+// ===== Swipe gestures in landscape/fullscreen: left = brightness, right = volume =====
+// Inside the Android app these control the phone's real media volume and screen brightness
+// (needs the Volume + ScreenBrightness Capacitor plugins). In a browser they only change the video.
+(function(){
+  const v=$("v"),p=v.parentElement,hud=$("hud"),body=document.body,C=window.Capacitor;
+  const nat=!!(C&&C.isNativePlatform&&C.isNativePlatform())||INAPP;
+  const plug=n=>{if(!nat||!C)return null;try{return(C.Plugins&&C.Plugins[n])||(C.registerPlugin?C.registerPlugin(n):null)}catch(e){return null}};
+  const VOL=[["Volume",P=>P.getVolume().then(r=>r.volume),(P,x)=>P.setVolume({volume:x})],
+             ["VolumeControl",P=>P.getVolumeLevel().then(r=>r.value),(P,x)=>P.setVolumeLevel({value:x})]];
+  let vAPI=null,NB=plug("ScreenBrightness"),nbOk=false,sysV=null,sysB=null;
+  let br=1;try{br=+localStorage.getItem("as_br")||1}catch(e){}
+  const cssBr=x=>{br=Math.max(.15,Math.min(1.5,x));v.style.filter=br===1?"":"brightness("+br+")";try{localStorage.setItem("as_br",br)}catch(e){}};
+  const readB=r=>r.brightness<0?.5:r.brightness;
+  (async()=>{
+    for(const [n,g,st] of VOL){const P=plug(n);if(!P)continue;try{sysV=await g(P);vAPI={P,g,st};break}catch(e){}}
+    if(NB){try{sysB=readB(await NB.getBrightness());nbOk=true}catch(e){nbOk=false}}
+    if(!nbOk&&br!==1)v.style.filter="brightness("+br+")";
+  })();
+  const prime=()=>{
+    if(vAPI)vAPI.g(vAPI.P).then(x=>{sysV=x}).catch(()=>{});
+    if(nbOk)NB.getBrightness().then(r=>{sysB=readB(r)}).catch(()=>{})};
+  let ht;
+  const show=(ic,pct,fr)=>{
+    hud.innerHTML=ic+' <i><b style="width:'+Math.round(Math.max(0,Math.min(1,fr))*100)+'%"></b></i> '+Math.round(pct*100)+'%';
+    hud.classList.add("on");clearTimeout(ht);ht=setTimeout(()=>hud.classList.remove("on"),900)};
+  let pv=null,pb=null,lt=0;
+  const flush=()=>{
+    if(pv!==null&&vAPI)vAPI.st(vAPI.P,pv).catch(()=>{});
+    if(pb!==null&&nbOk)NB.setBrightness({brightness:pb}).catch(()=>{nbOk=false});
+    pv=pb=null;lt=Date.now()};
+  const active=()=>body.classList.contains("land")||document.fullscreenElement||document.webkitFullscreenElement;
+  let g=null;
+  p.addEventListener("touchstart",e=>{
+    if(!active()||e.touches.length!==1||(e.target.closest&&e.target.closest(".pbtn,.cbar"))){g=null;return}
+    const t=e.touches[0],r=p.getBoundingClientRect();
+    if(t.clientY>r.bottom-r.height*.2){g=null;return}
+    prime();
+    g={x:t.clientX,y:t.clientY,side:(t.clientX-r.left)<r.width/2?"b":"v",on:false,h:r.height}
+  },{passive:true});
+  p.addEventListener("touchmove",e=>{
+    if(!g)return;
+    const t=e.touches[0],dy=g.y-t.clientY,dx=t.clientX-g.x;
+    if(!g.on){
+      if(Math.abs(dy)<14||Math.abs(dy)<Math.abs(dx)*1.5){if(Math.abs(dx)>14)g=null;return}
+      g.on=true;
+      g.v0=vAPI&&sysV!==null?sysV:v.volume;
+      g.b0=nbOk&&sysB!==null?sysB:br}
+    e.preventDefault();
+    const f=dy/(g.h*.7);
+    if(g.side==="v"){
+      const x=Math.max(0,Math.min(1,g.v0+f));
+      v.muted=false;
+      if(vAPI){v.volume=1;pv=x}else v.volume=x;
+      show(x===0?"🔇":"🔊",x,x)
+    }else if(nbOk){
+      const x=Math.max(.02,Math.min(1,g.b0+f));pb=x;show("☀",x,x)
+    }else{cssBr(g.b0+f*1.35);show("☀",br,br/1.5)}
+    if(Date.now()-lt>40)flush()
+  },{passive:false});
+  ["touchend","touchcancel"].forEach(n=>p.addEventListener(n,()=>{if(g&&g.on)flush();g=null},{passive:true}));
+})();
 
 (function(){
   const body=document.body;
