@@ -916,13 +916,35 @@ $("clr").onclick=async()=>{
   ["resize","orientationchange","pageshow"].forEach(e=>window.addEventListener(e,land));
   document.addEventListener("visibilitychange",chk);chk();land();
   // video fullscreen button -> rotate to landscape (and back)
-  const rot=async l=>{
+  // lock helper: plugin first, then the browser API
+  const setLock=async t=>{
     try{
       const C=window.Capacitor;
-      if(C&&C.Plugins&&C.Plugins.ScreenOrientation){l?await C.Plugins.ScreenOrientation.lock({orientation:"landscape"}):await C.Plugins.ScreenOrientation.unlock();return}
-      if(C&&C.nativePromise){await C.nativePromise("ScreenOrientation",l?"lock":"unlock",l?{orientation:"landscape"}:{});return}
+      if(C&&C.Plugins&&C.Plugins.ScreenOrientation){await C.Plugins.ScreenOrientation.lock({orientation:t});return}
+      if(C&&C.nativePromise){await C.nativePromise("ScreenOrientation","lock",{orientation:t});return}
     }catch(e){}
-    try{l?await screen.orientation.lock("landscape"):screen.orientation.unlock()}catch(e){}
+    try{await screen.orientation.lock(t)}catch(e){}
+  };
+  const setUnlock=async()=>{
+    try{
+      const C=window.Capacitor;
+      if(C&&C.Plugins&&C.Plugins.ScreenOrientation){await C.Plugins.ScreenOrientation.unlock();return}
+      if(C&&C.nativePromise){await C.nativePromise("ScreenOrientation","unlock",{});return}
+    }catch(e){}
+    try{screen.orientation.unlock()}catch(e){}
+  };
+  // after locking to landscape, follow the phone: top-left = landscape-primary, top-right = landscape-secondary
+  let side="";
+  const follow=e=>{
+    const g=e.gamma;if(g==null)return;
+    const want=g<-55?"landscape-primary":g>55?"landscape-secondary":"";
+    if(!want||want===side)return;
+    side=want;setLock(want);
+  };
+  const rot=async l=>{
+    window.removeEventListener("deviceorientation",follow);
+    if(l){side="";await setLock("landscape");window.addEventListener("deviceorientation",follow)}
+    else await setUnlock();
   };
   const fsChange=()=>{if(imm){if(!fsEl())imm=false;return}rot(!!fsEl())};
   document.addEventListener("fullscreenchange",fsChange);
