@@ -346,7 +346,7 @@ function offerContinue(){
   const b=document.createElement("button");b.id="contBtn";b.className="chip on";b.style.cssText="pointer-events:auto;margin-top:6px";
   b.textContent="▶ Continue: "+c.name;b.onclick=()=>play(c);
   $("msg").appendChild(b)}
-let autoDone=false,autoMuted=false;
+let autoDone=false,autoMuted=false,autoSkips=0;const MAX_SKIPS=15;
 function autoStart(){
   if(autoDone||cur||!chans.length)return;
   const list=chans.filter(c=>match(tab,c));
@@ -357,7 +357,7 @@ function tryPlay(v){
     v.muted=true;autoMuted=true;
     v.play().then(()=>toast("Sound off - tap the volume icon to unmute")).catch(()=>{})})}
 function play(c,auto){
-  if(!auto){tried=new Set();const vv=$("v");if(autoMuted){vv.muted=false;autoMuted=false}}
+  if(!auto){tried=new Set();autoSkips=0;const vv=$("v");if(autoMuted){vv.muted=false;autoMuted=false}}
   tried.add(c.url);
   try{localStorage.setItem(lastKey,c.url)}catch(e){}
   clearTimeout(stallTimer);
@@ -370,8 +370,13 @@ function play(c,auto){
     if(failed||cur!==c)return;failed=true;clearTimeout(stallTimer);
     const alt=chans.find(x=>baseName(x.name)===baseName(c.name)&&!tried.has(x.url));
     if(alt){toast("Switching to backup: "+alt.name);play(alt,true);return}
-    $("msg").style.display="flex";$("msg").textContent=t};
-  const ok=()=>{clearTimeout(stallTimer);requestWake()};
+    // no backup: automatically try the next channel in the current list
+    const list=visible();let i=list.findIndex(x=>x.url===c.url),next=null;
+    if(autoSkips<MAX_SKIPS){for(let k=1;k<=list.length;k++){const x=list[(Math.max(i,-1)+k+list.length)%list.length];if(x&&!tried.has(x.url)){next=x;break}}}
+    if(next){autoSkips++;toast("Not working: "+c.name+" - next: "+next.name);play(next,true);
+      setTimeout(()=>{const el=document.querySelector(".card.on");if(el)el.scrollIntoView({block:"center",behavior:"smooth"})},100);return}
+    $("msg").style.display="flex";$("msg").textContent=autoSkips>=MAX_SKIPS?"Many channels are not working. Check your internet or pick a channel.":t};
+  const ok=()=>{clearTimeout(stallTimer);autoSkips=0;requestWake()};
   v.onplaying=ok;v.onloadeddata=ok;
   stallTimer=setTimeout(()=>{if(v.readyState<2)fail("Stream is not responding")},15000);
   const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!INAPP;
