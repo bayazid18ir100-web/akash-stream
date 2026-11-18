@@ -107,6 +107,7 @@ body.tv.tvfs .player{width:100vw;height:100vh;aspect-ratio:auto}
 <div class="player"><video id="v" controls playsinline></video><div class="msg" id="msg"><img src="mark.svg" alt=""><div>Welcome to Akash Stream<br>Select a channel</div></div></div>
 <div class="nowbar"><div class="now" id="now">Nothing is playing</div>
 <button class="nb" id="repBtn" aria-label="Report broken channel">⚠️</button>
+<button class="nb" id="shareBtn" aria-label="Share channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
 <button class="nb" id="prevBtn" aria-label="Previous channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg></button>
 <button class="nb" id="nextBtn" aria-label="Next channel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
 </div>
@@ -349,6 +350,10 @@ function offerContinue(){
 let autoDone=false,autoMuted=false,autoSkips=0;const MAX_SKIPS=15;
 function autoStart(){
   if(autoDone||cur||!chans.length)return;
+  const sid=new URLSearchParams(location.search).get("c");
+  const sc=sid&&chans.find(x=>x.id===sid);
+  if(sc){autoDone=true;if(!match(tab,sc))tab="All";play(sc,true);
+    setTimeout(()=>{const el=document.querySelector(".card.on");if(el)el.scrollIntoView({block:"center"})},300);return}
   const list=chans.filter(c=>match(tab,c));
   if(!list.length)return;
   autoDone=true;play(list[0],true)}
@@ -403,6 +408,16 @@ function step(dir){
   play(list[(i+dir+list.length)%list.length]);
   const el=document.querySelector(".card.on");
   if(el)el.scrollIntoView({block:"center",behavior:"smooth"})}
+function copyText(t){
+  try{if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t)}catch(e){}
+  return new Promise((ok,no)=>{try{const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();const r=document.execCommand("copy");a.remove();r?ok():no()}catch(e){no(e)}})}
+async function shareChannel(){
+  if(!cur){toast("Play a channel first");return}
+  const link=location.origin+location.pathname+"?c="+encodeURIComponent(cur.id);
+  const text="Watch "+cur.name+" on Akash Stream";
+  try{if(navigator.share){await navigator.share({title:"Akash Stream",text,url:link});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await copyText(text+"\n"+link);toast("Link copied: "+cur.name)}catch(e){prompt("Copy this link",link)}}
+$("shareBtn").onclick=shareChannel;
 $("prevBtn").onclick=()=>step(-1);
 $("nextBtn").onclick=()=>step(1);
 
