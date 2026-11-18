@@ -382,15 +382,16 @@ function play(c,auto){
   const httpOnly=location.protocol==="https:"&&c.url.startsWith("http://")&&!INAPP;
   const playUrl=(httpOnly&&PROXY)?PROXY+"/?url="+encodeURIComponent(c.url):c.url;
   const failMsg=(httpOnly&&!PROXY)?"This stream is http-only, which browsers block on https sites. Try another channel or a backup.":"Stream failed to load";
-  v.onerror=()=>fail(failMsg,"media error "+(v.error?v.error.code:"?"));
-  let nat=false;
+  v.onerror=()=>fail(failMsg,(hlsWhy?"hls: "+hlsWhy+" | ":"")+"media error "+(v.error?v.error.code:"?"));
+  let nat=false,hlsWhy="";
   if(window.Hls&&Hls.isSupported()&&/\.m3u8/.test(c.url)){
     hls=new Hls();hls.loadSource(playUrl);hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,()=>tryPlay(v));
     hls.on(Hls.Events.ERROR,(e,d)=>{if(!d.fatal)return;
+      hlsWhy=d.details+(d.response&&d.response.code?" "+d.response.code:"");
       // hls.js failed (often CORS / mixed content): try the phone's own HLS player once
       if(!nat&&v.canPlayType("application/vnd.apple.mpegurl")){nat=true;try{hls.destroy()}catch(x){}hls=null;v.src=playUrl;tryPlay(v);return}
-      fail(failMsg,d.details+(d.response&&d.response.code?" "+d.response.code:""))});
+      fail(failMsg,"hls: "+hlsWhy)});
   }else{v.src=playUrl;tryPlay(v)}
   render()}
 
