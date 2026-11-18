@@ -430,10 +430,13 @@ function step(dir){
 function copyText(t){
   try{if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t)}catch(e){}
   return new Promise((ok,no)=>{try{const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();const r=document.execCommand("copy");a.remove();r?ok():no()}catch(e){no(e)}})}
-let APP_LINK="https://github.com/bayazid18ir100-web/akash-stream/releases/latest";
-fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(j=>{const u=String(j.appLink||"").trim();if(/^https:\/\//i.test(u))APP_LINK=u}).catch(()=>{});
+const APK_DIRECT="https://github.com/bayazid18ir100-web/akash-stream/releases/latest/download/akash-stream.apk";
+// a GitHub "releases" page link is turned into the direct APK link, so tapping it starts the download at once
+const directLink=u=>/^https:\/\/github\.com\/[^\/]+\/[^\/]+\/releases(\/latest)?\/?$/i.test(u)?u.replace(/\/releases(\/latest)?\/?$/i,"/releases/latest/download/akash-stream.apk"):u;
+let APP_LINK=APK_DIRECT;
+fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(j=>{const u=String(j.appLink||"").trim();if(/^https:\/\//i.test(u))APP_LINK=directLink(u)}).catch(()=>{});
 async function shareChannel(){
-  const text="Akash Stream - free live TV app. Download it here:";
+  const text="Akash Stream - free live TV app.\nTap the link below, the download starts right away:";
   try{if(navigator.share){await navigator.share({title:"Akash Stream",text,url:APP_LINK});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await copyText(text+"\n"+APP_LINK);toast("App link copied")}catch(e){prompt("Copy this link",APP_LINK)}}
 $("shareBtn").onclick=shareChannel;
