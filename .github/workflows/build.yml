@@ -115,6 +115,16 @@ jobs:
           sed -i 's|android:name=".MainActivity"|android:name=".MainActivity" android:supportsPictureInPicture="true"|' "$MF"
           grep -q supportsPictureInPicture "$MF"
 
+      - name: Allow http (cleartext) streams
+        run: |
+          MF=android/app/src/main/AndroidManifest.xml
+          if grep -q usesCleartextTraffic "$MF"; then
+            sed -i 's|android:usesCleartextTraffic="[a-z]*"|android:usesCleartextTraffic="true"|' "$MF"
+          else
+            sed -i 's|<application|<application android:usesCleartextTraffic="true"|' "$MF"
+          fi
+          grep -q 'usesCleartextTraffic="true"' "$MF"
+
       - name: Keep the same signing key between builds
         uses: actions/cache@v4
         with:
